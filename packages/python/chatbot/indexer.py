@@ -1,20 +1,14 @@
 """
-Indexes all tax knowledge documents into a ChromaDB vector database.
+Indexes tax knowledge documents into a ChromaDB vector database.
 
 Run this once before starting the chatbot:
     python indexer.py
 
 Documents indexed:
-  - 2022-summaries/       : AI-generated text summaries of every IRS tax form
-  - 2022-forms/forms/     : Original IRS tax form PDFs (text extracted)
-  - 2022-forms/instructions/ : IRS form instruction PDFs (text extracted)
-  - 2022-forms/form-instructions/ : Combined form-instruction PDFs (text extracted)
-  - 2022-publications/    : IRS publication PDFs (text extracted)
-  - prompts/              : Tax scenario prompts and expected responses
-  - flows/                : End-to-end tax workflow examples
+  - data/irs_forms/  : IRS tax form PDFs (text extracted)
+  - data/flows/      : End-to-end tax workflow examples
 """
 
-import os
 import sys
 import time
 import chromadb
@@ -23,13 +17,10 @@ from chromadb.utils import embedding_functions
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parents[2]
+DATA_DIR = SCRIPT_DIR / "data"
 
-SUMMARIES_DIR = REPO_ROOT / "2022-summaries"
-FORMS_DIR = REPO_ROOT / "2022-forms"
-PUBLICATIONS_DIR = REPO_ROOT / "2022-publications"
-PROMPTS_DIR = REPO_ROOT / "prompts"
-FLOWS_DIR = REPO_ROOT / "flows"
+IRS_FORMS_DIR = DATA_DIR / "irs_forms"
+FLOWS_DIR = DATA_DIR / "flows"
 CHROMA_DIR = SCRIPT_DIR / "chroma_db"
 
 COLLECTION_NAME = "tax_knowledge"
@@ -79,12 +70,7 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
     return chunks
 
 
-def collect_pdf_documents(
-    directory: Path,
-    source_type: str,
-    id_prefix: str,
-    metadata_key: str = "form",
-) -> list[dict]:
+def collect_pdf_documents(directory: Path) -> list[dict]:
     """Scan a directory for PDFs, extract text, chunk, and return doc dicts."""
     docs = []
     if not directory.exists():
@@ -92,7 +78,7 @@ def collect_pdf_documents(
         return docs
 
     pdf_files = sorted(directory.glob("*.pdf"))
-    print(f"  {directory.relative_to(REPO_ROOT)}: {len(pdf_files)} PDFs")
+    print(f"  {directory.relative_to(DATA_DIR)}: {len(pdf_files)} PDFs")
 
     for pdf_path in pdf_files:
         text = extract_pdf_text(pdf_path)
@@ -100,17 +86,17 @@ def collect_pdf_documents(
             continue
 
         name = pdf_path.stem
-        rel_path = str(pdf_path.relative_to(REPO_ROOT))
+        rel_path = str(pdf_path.relative_to(DATA_DIR))
         chunks = chunk_text(text)
 
         for ci, chunk in enumerate(chunks):
-            chunk_id = f"{id_prefix}::{rel_path}::chunk{ci}"
+            chunk_id = f"form::{rel_path}::chunk{ci}"
             docs.append({
                 "id": chunk_id,
                 "text": chunk,
                 "metadata": {
-                    "source": source_type,
-                    metadata_key: name,
+                    "source": "irs_form",
+                    "form": name,
                     "file": rel_path,
                     "chunk": ci,
                     "total_chunks": len(chunks),
@@ -121,47 +107,11 @@ def collect_pdf_documents(
 
 
 def collect_documents() -> list[dict]:
-    """Walk source directories and return a list of {id, text, metadata} dicts."""
+    """Walk data/irs_forms and data/flows, return a list of {id, text, metadata} dicts."""
     docs = []
 
-    # 1. Form summaries (.txt files anywhere under 2022-summaries/)
-    for txt_path in sorted(SUMMARIES_DIR.rglob("*.txt")):
-        text = txt_path.read_text(encoding="utf-8", errors="ignore").strip()
-        if not text:
-            continue
-        form_name = txt_path.stem  # e.g. "1040", "W-2"
-        docs.append({
-            "id": f"summary::{txt_path.relative_to(REPO_ROOT)}",
-            "text": text,
-            "metadata": {
-                "source": "form_summary",
-                "form": form_name,
-                "file": str(txt_path.relative_to(REPO_ROOT)),
-            },
-        })
+    docs.extend(collect_pdf_documents(IRS_FORMS_DIR))
 
-    # 2. Prompt/response pairs under prompts/
-    for prompt_dir in sorted(PROMPTS_DIR.iterdir()):
-        if not prompt_dir.is_dir():
-            continue
-        for fname in ("prompt.txt", "response.txt", "expected_response_with_forms.txt"):
-            fpath = prompt_dir / fname
-            if not fpath.exists():
-                continue
-            text = fpath.read_text(encoding="utf-8", errors="ignore").strip()
-            if not text:
-                continue
-            docs.append({
-                "id": f"prompt::{fpath.relative_to(REPO_ROOT)}",
-                "text": text,
-                "metadata": {
-                    "source": "prompt_example",
-                    "scenario": prompt_dir.name,
-                    "file": str(fpath.relative_to(REPO_ROOT)),
-                },
-            })
-
-    # 3. Flow outputs under flows/
     for flow_dir in sorted(FLOWS_DIR.rglob("*")):
         if not flow_dir.is_dir():
             continue
@@ -170,52 +120,20 @@ def collect_documents() -> list[dict]:
             if not text:
                 continue
             docs.append({
-                "id": f"flow::{txt_path.relative_to(REPO_ROOT)}",
+                "id": f"flow::{txt_path.relative_to(DATA_DIR)}",
                 "text": text,
                 "metadata": {
                     "source": "flow_example",
                     "flow": flow_dir.name,
-                    "file": str(txt_path.relative_to(REPO_ROOT)),
+                    "file": str(txt_path.relative_to(DATA_DIR)),
                 },
             })
-
-
-    docs.extend(collect_pdf_documents(
-        FORMS_DIR / "forms",
-        source_type="irs_form",
-        id_prefix="form",
-        metadata_key="form",
-    ))
-
-
-    docs.extend(collect_pdf_documents(
-        FORMS_DIR / "instructions",
-        source_type="form_instructions",
-        id_prefix="instructions",
-        metadata_key="form",
-    ))
-
-
-    docs.extend(collect_pdf_documents(
-        FORMS_DIR / "form-instructions",
-        source_type="form_instructions_combined",
-        id_prefix="form-instr",
-        metadata_key="form",
-    ))
-
-
-    docs.extend(collect_pdf_documents(
-        PUBLICATIONS_DIR,
-        source_type="irs_publication",
-        id_prefix="pub",
-        metadata_key="publication",
-    ))
 
     return docs
 
 
 def build_index(reset: bool = False) -> None:
-    print(f"Repository root : {REPO_ROOT}")
+    print(f"Data directory  : {DATA_DIR}")
     print(f"ChromaDB path   : {CHROMA_DIR}")
     print(f"Embedding model : {EMBED_MODEL}\n")
 
