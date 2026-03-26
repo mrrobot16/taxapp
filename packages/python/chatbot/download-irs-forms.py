@@ -8,7 +8,7 @@ from pathlib import Path
 INDEX_URL = "https://www.irs.gov/downloads/irs-pdf"
 TOTAL_PAGES = 62  # pages 0 through 61
 DOWNLOAD_BASE = "https://www.irs.gov/pub/irs-pdf/"
-OUTPUT_DIR = Path("./irs_forms")
+OUTPUT_DIR = Path("./data/irs_forms")
 
 async def fetch_page(session, page):
     url = f"{INDEX_URL}?page={page}"
