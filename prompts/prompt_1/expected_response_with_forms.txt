@@ -1,0 +1,28 @@
+Relevant keywords are by ChatGPT4
+- **["employee", "employed"]** -> [Form W-2](https://www.irs.gov/forms-pubs/about-form-w-2)
+- **["interest income", "savings account"]** -> [Form 1099-INT](https://www.irs.gov/forms-pubs/about-form-1099-int)
+- **["dividend income", "corporate shareholder"]** -> [Form 1099-DIV](https://www.irs.gov/forms-pubs/about-form-1099-div)
+- **["capital gains", "stock sales"]** -> [Schedule D](https://www.irs.gov/forms-pubs/about-schedule-d-form-1040), [Form 8949](https://www.irs.gov/forms-pubs/about-form-8949)
+- **["rental income", "property manager"]** -> [Schedule E](https://www.irs.gov/forms-pubs/about-schedule-e-form-1040)
+- **["S-corporation shareholder"]** -> [Schedule K-1 (Form 1120S)](https://www.irs.gov/forms-pubs/about-form-1120-s-k-1)
+- **["depreciation", "amortization"]** -> [Form 4562](https://www.irs.gov/forms-pubs/about-form-4562)
+- **["casualty losses", "natural disaster"]** -> [Form 4684](https://www.irs.gov/forms-pubs/about-form-4684)
+- **["consulting income", "independent contractor"]** -> [Form 1099-NEC](https://www.irs.gov/forms-pubs/about-form-1099-nec) or [Form 1099-MISC](https://www.irs.gov/forms-pubs/about-form-1099-misc)
+- **["business expenses", "sole proprietorship"]** -> [Schedule C](https://www.irs.gov/forms-pubs/about-schedule-c-form-1040)
+- **["itemized deductions"]** -> [Schedule A](https://www.irs.gov/forms-pubs/about-schedule-a-form-1040)
+
+
+Relevant keywords are by Mckenzie: 
+- **["employee", "employed", "employer"]** -> [W2](https://www.irs.gov/forms-pubs/about-form-w-2)
+- **["consulting", "consultant", "contract", "contractor"]** -> [[1099-NEC](https://www.irs.gov/forms-pubs/about-form-1099-nec), [Schedule C(1040)](https://www.irs.gov/pub/irs-pdf/f1040sc.pdf)]
+- **["single", "married", "household"]** -> [1040](https://www.irs.gov/forms-pubs/about-form-1040)
+- **["stock", "shares", "options", "company options", "company shares", "company stock"]**-> [Schedule D(1040)](https://www.irs.gov/forms-pubs/about-schedule-d-form-1040)
+- **["corporation", "c-corporation", "c corp"]** -> [1120](https://www.irs.gov/pub/irs-pdf/f1120.pdf)
+- **["s-corporation", "s corp", "s corporation"]** -> [1120S](https://www.irs.gov/pub/irs-pdf/f1120s.pdf)
+- **["interests", "interests", "saving accounts"]** -> [1099-INT](https://www.irs.gov/pub/irs-pdf/f1099int.pdf)
+- **["dividend", "dividends"]** -> [1099-DIV](https://www.irs.gov/pub/irs-pdf/f1099div.pdf)
+- **["properties", "rental", "rent", "rented", "royalties"]** -> [Schedule E(1040)](https://www.irs.gov/pub/irs-pdf/f1040se.pdf)
+- **["mortgage", "mortgages", "bank loan"]** -> [1098](https://www.irs.gov/pub/irs-pdf/f1098.pdf)
+- **["purchase properties", "purchase properties", "depreciation", "amortization"]** -> [4562](https://www.irs.gov/pub/irs-pdf/f4562.pdf)
+- **["property manager"]** -> [1099-MISC](https://www.irs.gov/pub/irs-pdf/f1099msc.pdf)
+- **["repairs", "natural disasters"]** -> [4684](https://www.irs.gov/pub/irs-pdf/f4684.pdf)
