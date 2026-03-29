@@ -9,6 +9,6 @@ testing
 .gpthiddenkey-irscopilot
 .claude
 do_not_commit
-# chroma_db
+chroma_db
 irs_forms
 node_modules
