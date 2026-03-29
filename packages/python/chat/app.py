@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
 DATA_DIR = SCRIPT_DIR / "data"
-CHROMA_DIR = DATA_DIR / "chroma_db"
+CHROMA_DIR = DATA_DIR / "chroma_db2"
 COLLECTION_NAME = "tax_knowledge"
 EMBED_MODEL = "all-MiniLM-L6-v2"
 
@@ -51,7 +51,9 @@ load_dotenv(SCRIPT_DIR / ".env")
 
 @st.cache_resource(show_spinner="Loading knowledge base …")
 def load_collection():
+    print(CHROMA_DIR)
     if not CHROMA_DIR.exists():
+        print(f"Chroma directory does not exist: {CHROMA_DIR}")
         return None
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
     embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
@@ -63,6 +65,7 @@ def load_collection():
             embedding_function=embed_fn,
         )
     except Exception:
+        print(f"Error loading collection: {e}")
         return None
 
 
@@ -163,9 +166,10 @@ def main():
         )
 
     collection = load_collection()
+    print(collection)
     if collection is None:
         st.error(
-            "Knowledge base not found. Please run the indexer first:\n\n"
+            "Knowledge base not found!!. Please run the indexer first:\n\n"
             "```\ncd packages/python/chat\npython indexer.py\n```"
         )
         st.stop()
