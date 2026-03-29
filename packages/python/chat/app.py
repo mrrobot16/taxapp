@@ -24,7 +24,8 @@ from dotenv import load_dotenv
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
-CHROMA_DIR = SCRIPT_DIR / "chroma_db"
+DATA_DIR = SCRIPT_DIR / "data"
+CHROMA_DIR = DATA_DIR / "chroma_db"
 COLLECTION_NAME = "tax_knowledge"
 EMBED_MODEL = "all-MiniLM-L6-v2"
 
@@ -138,7 +139,6 @@ def main():
         "publications, and curated tax scenarios."
     )
 
-    # Sidebar
     with st.sidebar:
         st.header("Settings")
         api_key = st.text_input(
@@ -180,9 +180,9 @@ def main():
     anthropic_client = Anthropic(api_key=api_key)
 
     if "messages" not in st.session_state:
-        st.session_state.messages = []   # display messages (role, content, sources)
+        st.session_state.messages = []
     if "history" not in st.session_state:
-        st.session_state.history = []    # Claude API message history
+        st.session_state.history = []
 
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
@@ -198,17 +198,14 @@ def main():
                         st.divider()
 
     if prompt := st.chat_input("Ask a tax question …"):
-        # Show user message
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Retrieve context
         with st.spinner("Searching knowledge base …"):
             chunks = retrieve_context(collection, prompt, top_k=top_k)
             context_block = build_context_block(chunks)
 
-        # Get Claude response
         with st.chat_message("assistant"):
             with st.spinner("Thinking …"):
                 try:
@@ -234,15 +231,12 @@ def main():
                         st.text(src["text"][:500] + ("…" if len(src["text"]) > 500 else ""))
                         st.divider()
 
-        # Update state
         st.session_state.messages.append({
             "role": "assistant",
             "content": answer,
             "sources": chunks,
         })
 
-        # Update Claude API history (plain role/content pairs, no context block
-        # repeated — we re-retrieve fresh context on each turn)
         st.session_state.history.append({"role": "user", "content": prompt})
         st.session_state.history.append({"role": "assistant", "content": answer})
 
