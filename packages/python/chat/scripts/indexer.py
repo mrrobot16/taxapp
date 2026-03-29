@@ -27,8 +27,9 @@ COLLECTION_NAME = "tax_knowledge"
 
 
 EMBED_MODEL = "all-MiniLM-L6-v2"
-
-BATCH_SIZE = 500
+# EMBED_MODEL = "BAAI/bge-base-en-v1.5"
+# EMBED_MODEL = "multi-qa-MiniLM-L6-cos-v1"
+BATCH_SIZE = 1000
 
 CHUNK_SIZE = 1500    
 CHUNK_OVERLAP = 200   
@@ -159,7 +160,7 @@ def build_index(reset: bool = False) -> None:
 
     print("Scanning source directories …")
     all_docs = collect_documents()
-    print(f"Total documents found: {len(all_docs)}")
+    print(f"Total chunks found: {len(all_docs)}")
 
 
     new_docs = [d for d in all_docs if d["id"] not in existing_ids]
@@ -175,7 +176,7 @@ def build_index(reset: bool = False) -> None:
     for i in range(0, len(new_docs), BATCH_SIZE):
         batch = new_docs[i : i + BATCH_SIZE]
         batch_num = i // BATCH_SIZE + 1
-        print(f"  Batch {batch_num}/{total_batches} — {len(batch)} docs …", end=" ", flush=True)
+        print(f"  Batch {batch_num}/{total_batches} — {len(batch)} chunks …", end=" ", flush=True)
         collection.add(
             ids=[d["id"] for d in batch],
             documents=[d["text"] for d in batch],
@@ -192,4 +193,7 @@ if __name__ == "__main__":
     reset_flag = "--reset" in sys.argv
     if reset_flag:
         print("--reset flag detected: will delete and rebuild the index.\n")
+    script_start = time.time()
+    print(f"Script started at {time.strftime('%Y-%m-%d %H:%M:%S')} with model: {EMBED_MODEL}")
     build_index(reset=reset_flag)
+    print(f"\nTotal time for model {EMBED_MODEL}: {time.time() - script_start:.1f}s")
