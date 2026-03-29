@@ -17,12 +17,11 @@ import fitz
 from chromadb.utils import embedding_functions
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-DATA_DIR = SCRIPT_DIR / "data"
-
+ROOT_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT_DIR / "data"
 IRS_FORMS_DIR = DATA_DIR / "irs_forms"
 FLOWS_DIR = DATA_DIR / "flows"
-CHROMA_DIR = SCRIPT_DIR / "chroma_db"
+CHROMA_DIR = DATA_DIR / "chroma_db"
 
 COLLECTION_NAME = "tax_knowledge"
 
