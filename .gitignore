@@ -10,4 +10,5 @@ testing
 .claude
 do_not_commit
 chroma_db
-irs-forms
+irs_forms
+node_modules
