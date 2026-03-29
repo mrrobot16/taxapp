@@ -1,5 +1,6 @@
 """
 Indexes tax knowledge documents into a ChromaDB vector database.
+Before running this script, you need to download the IRS forms and flows using the running scripts/irs-forms.py script.
 
 Run this once before starting the chatbot:
     python indexer.py

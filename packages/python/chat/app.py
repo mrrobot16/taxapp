@@ -166,7 +166,7 @@ def main():
     if collection is None:
         st.error(
             "Knowledge base not found. Please run the indexer first:\n\n"
-            "```\ncd packages/python/chatbot\npython indexer.py\n```"
+            "```\ncd packages/python/chat\npython indexer.py\n```"
         )
         st.stop()
 
