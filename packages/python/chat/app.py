@@ -27,11 +27,15 @@ REPO_ROOT = SCRIPT_DIR.parents[2]
 DATA_DIR = SCRIPT_DIR / "data"
 CHROMA_DIR = DATA_DIR / "chroma_db"
 COLLECTION_NAME = "tax_knowledge"
-EMBED_MODEL = "all-MiniLM-L6-v2"
+EMBED_MODEL = "BAAI/bge-base-en-v1.5"
 
 TOP_K = 8    
 MAX_HISTORY = 10 
-CLAUDE_MODEL = "claude-sonnet-4-6"
+DEFAULT_ANTHROPIC_MODELS = [
+    "claude-sonnet-4-6",
+    "claude-sonnet-4-20250514",
+    "claude-3-5-sonnet-latest",
+]
 
 SYSTEM_PROMPT = """You are an expert US tax CPA assistant ("IRS Copilot") with deep knowledge \
 of IRS forms, publications, and tax law. You only answer tax-related questions.
@@ -49,6 +53,29 @@ load_dotenv(REPO_ROOT / ".env")
 load_dotenv(SCRIPT_DIR / ".env")
 
 
+def get_candidate_models() -> list[str]:
+    configured = os.getenv("ANTHROPIC_MODEL", "").strip()
+    models = [configured] + DEFAULT_ANTHROPIC_MODELS if configured else DEFAULT_ANTHROPIC_MODELS[:]
+    seen = set()
+    deduped = []
+    for model in models:
+        if model and model not in seen:
+            seen.add(model)
+            deduped.append(model)
+    return deduped
+
+
+def is_model_access_error(err: Exception) -> bool:
+    msg = str(err).lower()
+    return (
+        "forbidden" in msg
+        or "request not allowed" in msg
+        or "not found" in msg
+        or "does not exist" in msg
+        or ("model" in msg and "access" in msg)
+    )
+
+
 @st.cache_resource(show_spinner="Loading knowledge base …")
 def load_collection():
     if not CHROMA_DIR.exists():
@@ -63,7 +90,7 @@ def load_collection():
             name=COLLECTION_NAME,
             embedding_function=embed_fn,
         )
-    except Exception:
+    except Exception as e:
         print(f"Error loading collection: {e}")
         return None
 
@@ -119,13 +146,25 @@ def chat(client: Anthropic, messages: list[dict], user_query: str, context: str)
 
     messages_payload = messages + [{"role": "user", "content": user_content}]
 
-    response = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=2048,
-        system=SYSTEM_PROMPT,
-        messages=messages_payload,
-    )
-    return response.content[0].text
+    last_error = None
+    for model in get_candidate_models():
+        try:
+            response = client.messages.create(
+                model=model,
+                max_tokens=2048,
+                system=SYSTEM_PROMPT,
+                messages=messages_payload,
+            )
+            return response.content[0].text
+        except Exception as e:
+            last_error = e
+            if is_model_access_error(e):
+                continue
+            raise
+    raise RuntimeError(
+        "No allowed Anthropic model found for this API key. "
+        "Set ANTHROPIC_MODEL in .env to a model your key can access."
+    ) from last_error
 
 
 def main():
