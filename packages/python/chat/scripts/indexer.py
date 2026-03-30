@@ -12,10 +12,13 @@ Documents indexed:
 
 import sys
 import time
+from multiprocessing import Pool, cpu_count
+from pathlib import Path
+
 import chromadb
 import fitz
-from chromadb.utils import embedding_functions
-from pathlib import Path
+import torch
+from sentence_transformers import SentenceTransformer
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data"
@@ -26,13 +29,36 @@ CHROMA_DIR = DATA_DIR / "chroma_db"
 COLLECTION_NAME = "tax_knowledge"
 
 
-EMBED_MODEL = "all-MiniLM-L6-v2"
-# EMBED_MODEL = "BAAI/bge-base-en-v1.5"
+# EMBED_MODEL = "all-MiniLM-L6-v2"
+EMBED_MODEL = "BAAI/bge-base-en-v1.5"
 # EMBED_MODEL = "multi-qa-MiniLM-L6-cos-v1"
 BATCH_SIZE = 1000
 
 CHUNK_SIZE = 1500    
 CHUNK_OVERLAP = 200   
+
+
+def get_device() -> str:
+    if torch.backends.mps.is_available():
+        return "mps"
+    if torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
+
+
+class LocalEmbeddingFunction:
+    """Wraps SentenceTransformer with explicit device selection for ChromaDB."""
+
+    def __init__(self, model_name: str, device: str | None = None):
+        self._model_name = model_name
+        self.device = device or get_device()
+        self.model = SentenceTransformer(model_name, device=self.device)
+
+    def __call__(self, input: list[str]) -> list[list[float]]:
+        return self.model.encode(input, show_progress_bar=False).tolist()
+
+    def name(self) -> str:
+        return self._model_name
 
 
 def extract_pdf_text(pdf_path: Path) -> str:
@@ -81,8 +107,12 @@ def collect_pdf_documents(directory: Path) -> list[dict]:
     pdf_files = sorted(directory.glob("*.pdf"))
     print(f"  {directory.relative_to(DATA_DIR)}: {len(pdf_files)} PDFs")
 
-    for pdf_path in pdf_files:
-        text = extract_pdf_text(pdf_path)
+    workers = min(cpu_count(), len(pdf_files)) or 1
+    print(f"  Extracting text with {workers} workers …")
+    with Pool(workers) as pool:
+        texts = pool.map(extract_pdf_text, pdf_files)
+
+    for pdf_path, text in zip(pdf_files, texts):
         if not text:
             continue
 
@@ -134,15 +164,14 @@ def collect_documents() -> list[dict]:
 
 
 def build_index(reset: bool = False) -> None:
+    device = get_device()
     print(f"Data directory  : {DATA_DIR}")
     print(f"ChromaDB path   : {CHROMA_DIR}")
-    print(f"Embedding model : {EMBED_MODEL}\n")
+    print(f"Embedding model : {EMBED_MODEL}")
+    print(f"Device          : {device}\n")
 
-
+    embed_fn = LocalEmbeddingFunction(EMBED_MODEL, device=device)
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-    embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=EMBED_MODEL
-    )
 
     if reset and COLLECTION_NAME in [c.name for c in client.list_collections()]:
         print(f"Deleting existing collection '{COLLECTION_NAME}' …")
@@ -157,21 +186,23 @@ def build_index(reset: bool = False) -> None:
     existing_ids = set(collection.get(include=[])["ids"])
     print(f"Existing documents in collection: {len(existing_ids)}")
 
-
-    print("Scanning source directories …")
+    # --- Stage 1: PDF extraction + chunking ---
+    t0 = time.time()
+    print("\nScanning source directories …")
     all_docs = collect_documents()
+    t_extract = time.time() - t0
     print(f"Total chunks found: {len(all_docs)}")
-
+    print(f"  ⏱ Extraction + chunking: {t_extract:.1f}s")
 
     new_docs = [d for d in all_docs if d["id"] not in existing_ids]
-    print(f"New documents to index: {len(new_docs)}\n")
+    print(f"\nNew documents to index: {len(new_docs)}")
 
     if not new_docs:
         print("Nothing to index. Run with --reset to force re-indexing.")
         return
 
-
-    start = time.time()
+    # --- Stage 2: Embedding + indexing ---
+    t1 = time.time()
     total_batches = (len(new_docs) + BATCH_SIZE - 1) // BATCH_SIZE
     for i in range(0, len(new_docs), BATCH_SIZE):
         batch = new_docs[i : i + BATCH_SIZE]
@@ -184,8 +215,9 @@ def build_index(reset: bool = False) -> None:
         )
         print("done")
 
-    elapsed = time.time() - start
-    print(f"\nIndexed {len(new_docs)} documents in {elapsed:.1f}s")
+    t_embed = time.time() - t1
+    print(f"\n  ⏱ Embedding + indexing: {t_embed:.1f}s")
+    print(f"\nIndexed {len(new_docs)} documents in {t_extract + t_embed:.1f}s")
     print(f"Collection total: {collection.count()} documents")
 
 
