@@ -80,6 +80,12 @@ class LocalEmbeddingFunction:
                 ).tolist()
             raise
 
+    def embed_query(self, input: list[str]) -> list[list[float]]:
+        return self.__call__(input)
+
+    def embed_documents(self, input: list[str]) -> list[list[float]]:
+        return self.__call__(input)
+
     def name(self) -> str:
         return self._model_name
 

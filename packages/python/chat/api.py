@@ -13,19 +13,21 @@ import textwrap
 from pathlib import Path
 
 import chromadb
+import torch
 from anthropic import Anthropic
-from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer
 from sse_starlette.sse import EventSourceResponse
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
-CHROMA_DIR = SCRIPT_DIR / "chroma_db"
+DATA_DIR = SCRIPT_DIR / "data"
+CHROMA_DIR = DATA_DIR / "chroma_db"
 COLLECTION_NAME = "tax_knowledge"
-EMBED_MODEL = "all-MiniLM-L6-v2"
+EMBED_MODEL = "BAAI/bge-base-en-v1.5"
 
 TOP_K = 8
 MAX_HISTORY = 10
@@ -61,6 +63,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def _get_device() -> str:
+    if torch.backends.mps.is_available():
+        return "mps"
+    if torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
+
+
+class LocalEmbeddingFunction:
+    """Same wrapper used by the indexer — must match exactly."""
+
+    def __init__(self, model_name: str):
+        self.model = SentenceTransformer(model_name, device=_get_device())
+
+    def __call__(self, input: list[str]) -> list[list[float]]:
+        return self.model.encode(input, show_progress_bar=False).tolist()
+
+    def embed_query(self, input: list[str]) -> list[list[float]]:
+        return self.__call__(input)
+
+    def embed_documents(self, input: list[str]) -> list[list[float]]:
+        return self.__call__(input)
+
+    def name(self) -> str:
+        return EMBED_MODEL
+
+
 _collection = None
 
 
@@ -95,15 +124,14 @@ def get_collection():
         return None
     try:
         client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-        embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=EMBED_MODEL
-        )
+        embed_fn = LocalEmbeddingFunction(EMBED_MODEL)
         _collection = client.get_collection(
             name=COLLECTION_NAME,
             embedding_function=embed_fn,
         )
         return _collection
-    except Exception:
+    except Exception as e:
+        print(f"[api] Could not load collection: {e}")
         return None
 
 
