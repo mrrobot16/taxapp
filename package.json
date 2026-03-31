@@ -9,6 +9,8 @@
         "start:chat": "cd packages/python/chat && poetry run streamlit run app.py",
         "start:api": "cd packages/python/chat && poetry run uvicorn api:app --reload --port 8000",
         "scripts:indexer": "cd packages/python/chat && poetry run python scripts/indexer.py",
-        "scripts:irs-forms": "cd packages/python/chat && poetry run python scripts/irs-forms.py"
+        "scripts:irs-forms": "cd packages/python/chat && poetry run python scripts/irs-forms.py",
+        "install:ui": "cd packages/nextjs && npm install",
+        "start:ui": "cd packages/nextjs && npm run dev"
     }
 }
