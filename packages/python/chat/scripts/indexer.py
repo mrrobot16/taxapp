@@ -20,18 +20,16 @@ import fitz
 import torch
 from sentence_transformers import SentenceTransformer
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-DATA_DIR = ROOT_DIR / "data"
-IRS_FORMS_DIR = DATA_DIR / "irs_forms"
-FLOWS_DIR = DATA_DIR / "flows"
-CHROMA_DIR = DATA_DIR / "chroma_db"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from constants import (
+    CHROMA_DIR,
+    COLLECTION_NAME,
+    DATA_DIR,
+    EMBED_MODEL,
+    FLOWS_DIR,
+    IRS_FORMS_DIR,
+)
 
-COLLECTION_NAME = "tax_knowledge"
-
-
-# EMBED_MODEL = "all-MiniLM-L6-v2"
-EMBED_MODEL = "BAAI/bge-base-en-v1.5"
-# EMBED_MODEL = "multi-qa-MiniLM-L6-cos-v1"
 BATCH_SIZE = 1000
 
 CHUNK_SIZE = 1500    
