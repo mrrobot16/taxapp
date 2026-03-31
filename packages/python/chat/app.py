@@ -13,7 +13,6 @@ Required environment variable (in a .env file at the repo root or chatbot dir):
 
 import os
 import textwrap
-from pathlib import Path
 
 import chromadb
 import streamlit as st
@@ -21,51 +20,53 @@ from anthropic import Anthropic
 from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
 
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parents[2]
-DATA_DIR = SCRIPT_DIR / "data"
-CHROMA_DIR = DATA_DIR / "chroma_db"
-COLLECTION_NAME = "tax_knowledge"
-EMBED_MODEL = "all-MiniLM-L6-v2"
-
-TOP_K = 8    
-MAX_HISTORY = 10 
-CLAUDE_MODEL = "claude-sonnet-4-6"
-
-SYSTEM_PROMPT = """You are an expert US tax CPA assistant ("IRS Copilot") with deep knowledge \
-of IRS forms, publications, and tax law. You only answer tax-related questions.
-
-Rules:
-- Base every answer strictly on the retrieved IRS context provided in the user turn.
-- If the context doesn't contain enough information to answer confidently, say so clearly.
-- Always mention the specific IRS form numbers or publication numbers that are relevant.
-- Organize answers with clear headings and bullet points when listing forms or steps.
-- Do not invent facts, citations, or form numbers.
-- Keep a professional, helpful tone."""
+from constants import (
+    CHAT_DIR,
+    CHROMA_DIR,
+    CLAUDE_MODEL,
+    COLLECTION_NAME,
+    EMBED_MODEL,
+    MAX_HISTORY,
+    REPO_ROOT,
+    SYSTEM_PROMPT,
+    TOP_K,
+)
+from scripts.indexer import build_index
 
 
 load_dotenv(REPO_ROOT / ".env")
-load_dotenv(SCRIPT_DIR / ".env")
+load_dotenv(CHAT_DIR / ".env")
 
 
 @st.cache_resource(show_spinner="Loading knowledge base …")
-def load_collection():
+def load_collection(_run_id: int = 0):
+    """Load the ChromaDB collection, auto-indexing if it doesn't exist yet.
+
+    The _run_id parameter is prefixed with _ so Streamlit ignores it for
+    caching, but changing its value busts the cache (used by the re-index
+    button).
+    """
     if not CHROMA_DIR.exists():
-        print(f"Chroma directory does not exist: {CHROMA_DIR}")
-        return None
+        st.info("Knowledge base not found — building index for the first time. This may take a few minutes …")
+        build_index()
+
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
     embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name=EMBED_MODEL
     )
     try:
-        return client.get_collection(
+        collection = client.get_collection(
             name=COLLECTION_NAME,
             embedding_function=embed_fn,
         )
     except Exception:
-        print(f"Error loading collection: {e}")
-        return None
+        st.info("Collection not found — building index. This may take a few minutes …")
+        build_index()
+        collection = client.get_collection(
+            name=COLLECTION_NAME,
+            embedding_function=embed_fn,
+        )
+    return collection
 
 
 def retrieve_context(collection, query: str, top_k: int = TOP_K) -> list[dict]:
@@ -158,19 +159,23 @@ def main():
             st.session_state.history = []
             st.rerun()
 
+        if st.button("Re-index knowledge base"):
+            with st.spinner("Re-indexing … this may take a few minutes."):
+                build_index(reset=True)
+            load_collection.clear()
+            st.session_state.index_run_id += 1
+            st.rerun()
+
         st.divider()
         st.markdown(
             "**Knowledge base**: 2025 IRS forms, instructions, publications, "
             "and tax scenario examples."
         )
 
-    collection = load_collection()
-    if collection is None:
-        st.error(
-            "Knowledge base not found or could not be loaded. Please run the indexer first:\n\n"
-            "```\ncd packages/python/chat\npython indexer.py\n```"
-        )
-        st.stop()
+    if "index_run_id" not in st.session_state:
+        st.session_state.index_run_id = 0
+
+    collection = load_collection(_run_id=st.session_state.index_run_id)
 
     doc_count = collection.count()
     st.sidebar.success(f"{doc_count:,} documents indexed")
