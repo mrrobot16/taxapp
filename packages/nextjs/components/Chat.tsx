@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Sidebar from "./Sidebar";
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
@@ -86,6 +87,7 @@ export default function Chat() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
+          <Image src="/taxapp.png" alt="IRS Copilot logo" width={24} height={24} className="rounded-sm" />
           <span className="font-serif font-semibold text-rh-white text-base tracking-tight">IRS Copilot</span>
         </div>
 
