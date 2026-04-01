@@ -7,29 +7,30 @@ body {
   height: 100%;
 }
 
-/* Scrollbar styling for dark theme */
+/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: #251f13;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: #3a3326;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: #878581;
 }
 
 /* Markdown-rendered content inside assistant messages */
 .prose-chat h1,
 .prose-chat h2,
 .prose-chat h3 {
-  color: #f9fafb;
+  color: #ffffff;
+  font-family: var(--font-serif);
   font-weight: 600;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
@@ -51,20 +52,20 @@ body {
 }
 
 .prose-chat strong {
-  color: #f9fafb;
+  color: #ffffff;
   font-weight: 600;
 }
 
 .prose-chat code {
-  background: #374151;
+  background: #3a3326;
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
   font-size: 0.875em;
-  color: #fbbf24;
+  color: #ccff00;
 }
 
 .prose-chat pre {
-  background: #1f2937;
+  background: #251f13;
   padding: 1rem;
   border-radius: 8px;
   overflow-x: auto;
@@ -74,17 +75,17 @@ body {
 .prose-chat pre code {
   background: transparent;
   padding: 0;
-  color: #e5e7eb;
+  color: #d4d0c8;
 }
 
 .prose-chat a {
-  color: #60a5fa;
+  color: #ccff00;
   text-decoration: underline;
 }
 
 .prose-chat blockquote {
-  border-left: 3px solid #4b5563;
+  border-left: 3px solid #3a3326;
   padding-left: 1rem;
-  color: #9ca3af;
+  color: #878581;
   font-style: italic;
 }

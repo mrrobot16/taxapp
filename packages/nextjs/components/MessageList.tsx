@@ -12,7 +12,7 @@ interface MessageListProps {
 function SourcesPanel({ sources }: { sources: Source[] }) {
   return (
     <details className="mt-2 group">
-      <summary className="cursor-pointer text-xs text-blue-400 hover:text-blue-300 font-medium list-none flex items-center gap-1 select-none">
+      <summary className="cursor-pointer text-xs text-rh-lime hover:text-rh-warm-white font-medium list-none flex items-center gap-1 select-none">
         <svg
           className="h-3 w-3 transition-transform group-open:rotate-90"
           fill="none"
@@ -25,7 +25,7 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
         Sources ({sources.length} retrieved)
       </summary>
 
-      <div className="mt-2 space-y-2 border-l-2 border-gray-700 pl-3">
+      <div className="mt-2 space-y-2 border-l-2 border-rh-border pl-3">
         {sources.map((src, i) => {
           const label =
             src.metadata?.file ??
@@ -35,16 +35,16 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
           return (
             <div key={i} className="text-xs">
               <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-gray-300 truncate">{label}</span>
-                <span className="ml-2 shrink-0 text-gray-500">
+                <span className="font-medium text-rh-warm-white truncate">{label}</span>
+                <span className="ml-2 shrink-0 text-rh-cool-gray">
                   relevance: {src.score.toFixed(2)}
                 </span>
               </div>
-              <p className="text-gray-500 line-clamp-3 leading-relaxed">
+              <p className="text-rh-cool-gray line-clamp-3 leading-relaxed">
                 {src.text.length > 300 ? src.text.slice(0, 300) + "…" : src.text}
               </p>
               {i < sources.length - 1 && (
-                <hr className="mt-2 border-gray-700" />
+                <hr className="mt-2 border-rh-border" />
               )}
             </div>
           );
@@ -57,7 +57,7 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
 function UserBubble({ content }: { content: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[75%] bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow">
+      <div className="max-w-[75%] bg-rh-lime text-rh-dark rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow font-medium">
         {content}
       </div>
     </div>
@@ -78,28 +78,28 @@ function AssistantBubble({
   return (
     <div className="flex gap-3">
       {/* Avatar */}
-      <div className="shrink-0 mt-1 h-7 w-7 rounded-full bg-emerald-700 flex items-center justify-center text-sm">
+      <div className="shrink-0 mt-1 h-7 w-7 rounded-full bg-rh-border flex items-center justify-center text-sm">
         🧾
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 shadow">
+        <div className="bg-rh-surface-2 rounded-2xl rounded-tl-sm px-4 py-3 shadow border border-rh-border">
           {content ? (
             <div
-              className="prose-chat text-sm text-gray-100 leading-relaxed"
+              className="prose-chat text-sm text-rh-warm-white leading-relaxed"
               dangerouslySetInnerHTML={{ __html: formatMarkdown(content) }}
             />
           ) : (
             isStreaming && (
               <div className="flex gap-1 items-center py-1">
-                <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.3s]" />
-                <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.15s]" />
-                <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" />
+                <span className="h-2 w-2 rounded-full bg-rh-cool-gray animate-bounce [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 rounded-full bg-rh-cool-gray animate-bounce [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 rounded-full bg-rh-cool-gray animate-bounce" />
               </div>
             )
           )}
           {isStreaming && content && (
-            <span className="inline-block h-4 w-0.5 bg-blue-400 animate-pulse ml-0.5 align-text-bottom" />
+            <span className="inline-block h-4 w-0.5 bg-rh-lime animate-pulse ml-0.5 align-text-bottom" />
           )}
         </div>
 
@@ -116,35 +116,21 @@ function AssistantBubble({
 /**
  * Very lightweight markdown → HTML converter.
  * Handles: bold, inline code, code blocks, headings, bullet lists, numbered lists, line breaks.
- * For a production app, replace with `marked` or `react-markdown`.
  */
 function formatMarkdown(text: string): string {
   return text
-    // Code blocks first (before other replacements)
     .replace(/```[\w]*\n?([\s\S]*?)```/g, "<pre><code>$1</code></pre>")
-    // Inline code
     .replace(/`([^`]+)`/g, "<code>$1</code>")
-    // Bold
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    // Italic
     .replace(/\*(.*?)\*/g, "<em>$1</em>")
-    // H3
     .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-    // H2
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-    // H1
     .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-    // Unordered list items
     .replace(/^[-*] (.+)$/gm, "<li>$1</li>")
-    // Ordered list items
     .replace(/^\d+\. (.+)$/gm, "<li>$1</li>")
-    // Wrap consecutive <li> in <ul>
     .replace(/(<li>.*<\/li>(\n|$))+/g, (match) => `<ul>${match}</ul>`)
-    // Paragraphs: double newlines
     .replace(/\n\n/g, "</p><p>")
-    // Single line break
     .replace(/\n/g, "<br />")
-    // Wrap everything in a paragraph if no block-level elements
     .replace(/^(?!<[hup]|<pre)(.+)/, "<p>$1</p>");
 }
 
@@ -168,11 +154,11 @@ export default function MessageList({
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
         <span className="text-5xl mb-4">🧾</span>
-        <h2 className="text-xl font-semibold text-gray-200 mb-2">
+        <h2 className="font-serif text-xl font-semibold text-rh-white mb-2 tracking-tight">
           Welcome to IRS Copilot
         </h2>
-        <p className="text-gray-400 text-sm max-w-md leading-relaxed">
-          Ask any US tax question. I'll answer based strictly on IRS forms,
+        <p className="text-rh-warm-gray text-sm max-w-md leading-relaxed">
+          Ask any US tax question. I&apos;ll answer based strictly on IRS forms,
           publications, and curated tax scenarios — no guessing.
         </p>
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
@@ -184,7 +170,7 @@ export default function MessageList({
           ].map((suggestion) => (
             <div
               key={suggestion}
-              className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-xs text-gray-400 text-left leading-relaxed"
+              className="bg-rh-surface border border-rh-border rounded-xl px-3 py-2 text-xs text-rh-warm-gray text-left leading-relaxed hover:border-rh-lime hover:text-rh-warm-white transition-colors cursor-default"
             >
               {suggestion}
             </div>

@@ -23,7 +23,6 @@ export default function ChatInput({
     if (!trimmed || isLoading || disabled) return;
     onSend(trimmed);
     setValue("");
-    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -44,18 +43,21 @@ export default function ChatInput({
   };
 
   const isBlocked = disabled || isLoading;
+  const canSend = !isBlocked && value.trim().length > 0;
 
   return (
-    <div className="shrink-0 border-t border-gray-800 bg-gray-950 px-4 py-4">
+    <div className="shrink-0 border-t border-rh-border bg-rh-dark px-4 py-4">
       {disabledReason && (
         <p className="text-xs text-amber-400 mb-2 text-center">{disabledReason}</p>
       )}
 
-      <div className={`flex items-end gap-2 bg-gray-800 border rounded-2xl px-4 py-3 transition-colors ${
-        isBlocked
-          ? "border-gray-700 opacity-60"
-          : "border-gray-600 focus-within:border-blue-500"
-      }`}>
+      <div
+        className={`flex items-center gap-2 bg-rh-surface-2 border rounded-2xl px-4 py-2 transition-colors ${
+          isBlocked
+            ? "border-rh-border opacity-60"
+            : "border-rh-border focus-within:border-rh-lime"
+        }`}
+      >
         <textarea
           ref={textareaRef}
           value={value}
@@ -65,18 +67,22 @@ export default function ChatInput({
           placeholder="Ask a tax question…"
           disabled={isBlocked}
           rows={1}
-          className="flex-1 bg-transparent resize-none text-sm text-gray-100 placeholder-gray-500 focus:outline-none leading-relaxed max-h-44 disabled:cursor-not-allowed"
+          className="flex-1 bg-transparent resize-none text-sm text-rh-white placeholder-rh-cool-gray focus:outline-none leading-relaxed max-h-44 disabled:cursor-not-allowed"
         />
 
         <button
           onClick={handleSubmit}
-          disabled={isBlocked || !value.trim()}
-          className="shrink-0 mb-0.5 h-8 w-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700"
+          disabled={!canSend}
+          className={`shrink-0 mb-0.5 h-8 w-8 rounded-full flex items-center justify-center transition-colors disabled:cursor-not-allowed ${
+            canSend
+              ? "bg-rh-lime text-rh-dark hover:opacity-90"
+              : "bg-rh-border text-rh-cool-gray opacity-50"
+          }`}
           aria-label="Send"
         >
           {isLoading ? (
             <svg
-              className="animate-spin h-4 w-4 text-white"
+              className="animate-spin h-4 w-4"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -96,7 +102,7 @@ export default function ChatInput({
             </svg>
           ) : (
             <svg
-              className="h-4 w-4 text-white"
+              className="h-4 w-4"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -112,9 +118,9 @@ export default function ChatInput({
         </button>
       </div>
 
-      <p className="text-xs text-gray-600 text-center mt-2">
-        Press <kbd className="bg-gray-800 rounded px-1">Enter</kbd> to send ·{" "}
-        <kbd className="bg-gray-800 rounded px-1">Shift + Enter</kbd> for new line
+      <p className="text-xs text-rh-cool-gray text-center mt-2">
+        Press <kbd className="bg-rh-surface-2 border border-rh-border rounded px-1">Enter</kbd> to send ·{" "}
+        <kbd className="bg-rh-surface-2 border border-rh-border rounded px-1">Shift + Enter</kbd> for new line
       </p>
     </div>
   );
