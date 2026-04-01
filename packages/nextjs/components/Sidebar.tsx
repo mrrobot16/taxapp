@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -39,10 +41,7 @@ export default function Sidebar({
       {/* Header */}
       <div className="px-5 py-6 border-b border-rh-border">
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🧾</span>
-            <h1 className="font-serif text-lg font-semibold text-rh-white tracking-tight">IRS Copilot</h1>
-          </div>
+          <Image src="/taxapp.png" alt="IRS Copilot logo" width={160} height={40} className="object-contain" />
           {/* Close button — mobile only */}
           <button
             onClick={onClose}

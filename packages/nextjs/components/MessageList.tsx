@@ -153,9 +153,8 @@ export default function MessageList({
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
-        <span className="text-5xl mb-4">🧾</span>
         <h2 className="font-serif text-xl font-semibold text-rh-white mb-2 tracking-tight">
-          Welcome to IRS Copilot
+          Welcome to taxapp
         </h2>
         <p className="text-rh-warm-gray text-sm max-w-md leading-relaxed">
           Ask any US tax question. I&apos;ll answer based strictly on IRS forms,

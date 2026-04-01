@@ -12,3 +12,7 @@ do_not_commit
 chroma_db
 irs_forms
 node_modules
+.next
+out
+*.tsbuildinfo
+next-env.d.ts
