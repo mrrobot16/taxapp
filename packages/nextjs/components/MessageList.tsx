@@ -1,0 +1,201 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import type { Message, Source } from "@/hooks/useChat";
+
+interface MessageListProps {
+  messages: Message[];
+  isLoading: boolean;
+  showSources: boolean;
+}
+
+function SourcesPanel({ sources }: { sources: Source[] }) {
+  return (
+    <details className="mt-2 group">
+      <summary className="cursor-pointer text-xs text-rh-lime hover:text-rh-warm-white font-medium list-none flex items-center gap-1 select-none">
+        <svg
+          className="h-3 w-3 transition-transform group-open:rotate-90"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+        Sources ({sources.length} retrieved)
+      </summary>
+
+      <div className="mt-2 space-y-2 border-l-2 border-rh-border pl-3">
+        {sources.map((src, i) => {
+          const label =
+            src.metadata?.file ??
+            src.metadata?.form ??
+            src.metadata?.publication ??
+            `Source ${i + 1}`;
+          return (
+            <div key={i} className="text-xs">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-rh-warm-white truncate">{label}</span>
+                <span className="ml-2 shrink-0 text-rh-cool-gray">
+                  relevance: {src.score.toFixed(2)}
+                </span>
+              </div>
+              <p className="text-rh-cool-gray line-clamp-3 leading-relaxed">
+                {src.text.length > 300 ? src.text.slice(0, 300) + "…" : src.text}
+              </p>
+              {i < sources.length - 1 && (
+                <hr className="mt-2 border-rh-border" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </details>
+  );
+}
+
+function UserBubble({ content }: { content: string }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[75%] bg-rh-lime text-rh-dark rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow font-medium">
+        {content}
+      </div>
+    </div>
+  );
+}
+
+function AssistantBubble({
+  content,
+  sources,
+  showSources,
+  isStreaming,
+}: {
+  content: string;
+  sources?: Source[];
+  showSources: boolean;
+  isStreaming: boolean;
+}) {
+  return (
+    <div className="flex gap-3">
+      {/* Avatar */}
+      <div className="shrink-0 mt-1 h-7 w-7 rounded-full bg-rh-border flex items-center justify-center text-sm">
+        🧾
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="bg-rh-surface-2 rounded-2xl rounded-tl-sm px-4 py-3 shadow border border-rh-border">
+          {content ? (
+            <div
+              className="prose-chat text-sm text-rh-warm-white leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: formatMarkdown(content) }}
+            />
+          ) : (
+            isStreaming && (
+              <div className="flex gap-1 items-center py-1">
+                <span className="h-2 w-2 rounded-full bg-rh-cool-gray animate-bounce [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 rounded-full bg-rh-cool-gray animate-bounce [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 rounded-full bg-rh-cool-gray animate-bounce" />
+              </div>
+            )
+          )}
+          {isStreaming && content && (
+            <span className="inline-block h-4 w-0.5 bg-rh-lime animate-pulse ml-0.5 align-text-bottom" />
+          )}
+        </div>
+
+        {showSources && sources && sources.length > 0 && !isStreaming && (
+          <div className="mt-1 px-4">
+            <SourcesPanel sources={sources} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Very lightweight markdown → HTML converter.
+ * Handles: bold, inline code, code blocks, headings, bullet lists, numbered lists, line breaks.
+ */
+function formatMarkdown(text: string): string {
+  return text
+    .replace(/```[\w]*\n?([\s\S]*?)```/g, "<pre><code>$1</code></pre>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+    .replace(/^[-*] (.+)$/gm, "<li>$1</li>")
+    .replace(/^\d+\. (.+)$/gm, "<li>$1</li>")
+    .replace(/(<li>.*<\/li>(\n|$))+/g, (match) => `<ul>${match}</ul>`)
+    .replace(/\n\n/g, "</p><p>")
+    .replace(/\n/g, "<br />")
+    .replace(/^(?!<[hup]|<pre)(.+)/, "<p>$1</p>");
+}
+
+export default function MessageList({
+  messages,
+  isLoading,
+  showSources,
+}: MessageListProps) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const lastAssistantIndex = messages.reduce(
+    (last, msg, i) => (msg.role === "assistant" ? i : last),
+    -1
+  );
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
+        <span className="text-5xl mb-4">🧾</span>
+        <h2 className="font-serif text-xl font-semibold text-rh-white mb-2 tracking-tight">
+          Welcome to IRS Copilot
+        </h2>
+        <p className="text-rh-warm-gray text-sm max-w-md leading-relaxed">
+          Ask any US tax question. I&apos;ll answer based strictly on IRS forms,
+          publications, and curated tax scenarios — no guessing.
+        </p>
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
+          {[
+            "What forms do I need for rental income?",
+            "How do I report stock sales on my taxes?",
+            "What is a Schedule K-1 and when do I need it?",
+            "Can I deduct home office expenses as a contractor?",
+          ].map((suggestion) => (
+            <div
+              key={suggestion}
+              className="bg-rh-surface border border-rh-border rounded-xl px-3 py-2 text-xs text-rh-warm-gray text-left leading-relaxed hover:border-rh-lime hover:text-rh-warm-white transition-colors cursor-default"
+            >
+              {suggestion}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
+      {messages.map((msg, i) =>
+        msg.role === "user" ? (
+          <UserBubble key={msg.id} content={msg.content} />
+        ) : (
+          <AssistantBubble
+            key={msg.id}
+            content={msg.content}
+            sources={msg.sources}
+            showSources={showSources}
+            isStreaming={isLoading && i === lastAssistantIndex}
+          />
+        )
+      )}
+      <div ref={bottomRef} />
+    </div>
+  );
+}
