@@ -8,7 +8,9 @@ Run with:
 """
 
 import json
+import os
 import textwrap
+from pathlib import Path
 
 import chromadb
 from anthropic import Anthropic
@@ -19,21 +21,34 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from constants import (
-    CHAT_DIR,
-    CHROMA_DIR,
-    CLAUDE_MODEL,
-    COLLECTION_NAME,
-    EMBED_MODEL,
-    MAX_HISTORY,
-    REPO_ROOT,
-    SYSTEM_PROMPT,
-    TOP_K,
-)
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[2]
+CHROMA_DIR = SCRIPT_DIR / "chroma_db"
+COLLECTION_NAME = "tax_knowledge"
+EMBED_MODEL = "all-MiniLM-L6-v2"
+
+TOP_K = 8
+MAX_HISTORY = 10
+DEFAULT_ANTHROPIC_MODELS = [
+    "claude-sonnet-4-6",
+    "claude-sonnet-4-20250514",
+    "claude-3-5-sonnet-latest",
+]
+
+SYSTEM_PROMPT = """You are an expert US tax CPA assistant ("IRS Copilot") with deep knowledge \
+of 2025 IRS forms, instructions, publications, and tax law. You only answer tax-related questions.
+
+Rules:
+- Base every answer strictly on the retrieved IRS context provided in the user turn.
+- If the context doesn't contain enough information to answer confidently, say so clearly.
+- Always mention the specific IRS form numbers or publication numbers that are relevant.
+- Organize answers with clear headings and bullet points when listing forms or steps.
+- Do not invent facts, citations, or form numbers.
+- Keep a professional, helpful tone."""
 
 
 load_dotenv(REPO_ROOT / ".env")
-load_dotenv(CHAT_DIR / ".env")
+load_dotenv(SCRIPT_DIR / ".env")
 
 
 app = FastAPI(title="IRS Copilot API", version="1.0.0")
@@ -47,6 +62,29 @@ app.add_middleware(
 )
 
 _collection = None
+
+
+def get_candidate_models() -> list[str]:
+    configured = os.getenv("ANTHROPIC_MODEL", "").strip()
+    models = [configured] + DEFAULT_ANTHROPIC_MODELS if configured else DEFAULT_ANTHROPIC_MODELS[:]
+    seen = set()
+    deduped = []
+    for model in models:
+        if model and model not in seen:
+            seen.add(model)
+            deduped.append(model)
+    return deduped
+
+
+def is_model_access_error(err: Exception) -> bool:
+    msg = str(err).lower()
+    return (
+        "forbidden" in msg
+        or "request not allowed" in msg
+        or "not found" in msg
+        or "does not exist" in msg
+        or ("model" in msg and "access" in msg)
+    )
 
 
 def get_collection():
@@ -153,19 +191,37 @@ async def chat_endpoint(req: ChatRequest):
         messages_payload = history_payload + [{"role": "user", "content": user_content}]
 
         client = Anthropic(api_key=req.api_key)
-        try:
-            with client.messages.stream(
-                model=CLAUDE_MODEL,
-                max_tokens=2048,
-                system=SYSTEM_PROMPT,
-                messages=messages_payload,
-            ) as stream:
-                for text_chunk in stream.text_stream:
-                    yield {
-                        "data": json.dumps({"type": "text", "content": text_chunk})
-                    }
-        except Exception as e:
-            yield {"data": json.dumps({"type": "error", "message": str(e)})}
+        streamed = False
+        last_error = None
+        for model in get_candidate_models():
+            try:
+                with client.messages.stream(
+                    model=model,
+                    max_tokens=2048,
+                    system=SYSTEM_PROMPT,
+                    messages=messages_payload,
+                ) as stream:
+                    streamed = True
+                    for text_chunk in stream.text_stream:
+                        yield {
+                            "data": json.dumps({"type": "text", "content": text_chunk})
+                        }
+                break
+            except Exception as e:
+                last_error = e
+                if is_model_access_error(e):
+                    continue
+                yield {"data": json.dumps({"type": "error", "message": str(e)})}
+                return
+
+        if not streamed:
+            msg = (
+                "No allowed Anthropic model found for this API key. "
+                "Set ANTHROPIC_MODEL in .env to a model your key can access."
+            )
+            if last_error is not None:
+                msg = f"{msg} ({last_error})"
+            yield {"data": json.dumps({"type": "error", "message": msg})}
             return
 
         sources = [

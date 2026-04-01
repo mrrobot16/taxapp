@@ -12,6 +12,7 @@ Documents indexed:
 
 import sys
 import time
+import os
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
 
@@ -51,9 +52,31 @@ class LocalEmbeddingFunction:
         self._model_name = model_name
         self.device = device or get_device()
         self.model = SentenceTransformer(model_name, device=self.device)
+        default_batch_size = 8 if self.device == "mps" else 32
+        self.encode_batch_size = int(os.getenv("INDEXER_EMBED_BATCH_SIZE", str(default_batch_size)))
 
     def __call__(self, input: list[str]) -> list[list[float]]:
-        return self.model.encode(input, show_progress_bar=False).tolist()
+        try:
+            return self.model.encode(
+                input,
+                show_progress_bar=False,
+                batch_size=self.encode_batch_size,
+            ).tolist()
+        except RuntimeError as e:
+            # MPS can OOM on large or long-text batches; fallback to CPU and retry once.
+            if self.device == "mps" and "MPS backend out of memory" in str(e):
+                print("  WARNING: MPS out of memory during embedding. Falling back to CPU for this run.")
+                if hasattr(torch, "mps"):
+                    torch.mps.empty_cache()
+                self.device = "cpu"
+                self.model = self.model.to("cpu")
+                self.encode_batch_size = int(os.getenv("INDEXER_EMBED_BATCH_SIZE_CPU", "16"))
+                return self.model.encode(
+                    input,
+                    show_progress_bar=False,
+                    batch_size=self.encode_batch_size,
+                ).tolist()
+            raise
 
     def name(self) -> str:
         return self._model_name

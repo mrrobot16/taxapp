@@ -13,6 +13,7 @@ Required environment variable (in a .env file at the repo root or chatbot dir):
 
 import os
 import textwrap
+from pathlib import Path
 
 import chromadb
 import streamlit as st
@@ -20,53 +21,78 @@ from anthropic import Anthropic
 from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
 
-from constants import (
-    CHAT_DIR,
-    CHROMA_DIR,
-    CLAUDE_MODEL,
-    COLLECTION_NAME,
-    EMBED_MODEL,
-    MAX_HISTORY,
-    REPO_ROOT,
-    SYSTEM_PROMPT,
-    TOP_K,
-)
-from scripts.indexer import build_index
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[2]
+DATA_DIR = SCRIPT_DIR / "data"
+CHROMA_DIR = DATA_DIR / "chroma_db"
+COLLECTION_NAME = "tax_knowledge"
+EMBED_MODEL = "BAAI/bge-base-en-v1.5"
+
+TOP_K = 8    
+MAX_HISTORY = 10 
+DEFAULT_ANTHROPIC_MODELS = [
+    "claude-sonnet-4-6",
+    "claude-sonnet-4-20250514",
+    "claude-3-5-sonnet-latest",
+]
+
+SYSTEM_PROMPT = """You are an expert US tax CPA assistant ("IRS Copilot") with deep knowledge \
+of IRS forms, publications, and tax law. You only answer tax-related questions.
+
+Rules:
+- Base every answer strictly on the retrieved IRS context provided in the user turn.
+- If the context doesn't contain enough information to answer confidently, say so clearly.
+- Always mention the specific IRS form numbers or publication numbers that are relevant.
+- Organize answers with clear headings and bullet points when listing forms or steps.
+- Do not invent facts, citations, or form numbers.
+- Keep a professional, helpful tone."""
 
 
 load_dotenv(REPO_ROOT / ".env")
-load_dotenv(CHAT_DIR / ".env")
+load_dotenv(SCRIPT_DIR / ".env")
+
+
+def get_candidate_models() -> list[str]:
+    configured = os.getenv("ANTHROPIC_MODEL", "").strip()
+    models = [configured] + DEFAULT_ANTHROPIC_MODELS if configured else DEFAULT_ANTHROPIC_MODELS[:]
+    seen = set()
+    deduped = []
+    for model in models:
+        if model and model not in seen:
+            seen.add(model)
+            deduped.append(model)
+    return deduped
+
+
+def is_model_access_error(err: Exception) -> bool:
+    msg = str(err).lower()
+    return (
+        "forbidden" in msg
+        or "request not allowed" in msg
+        or "not found" in msg
+        or "does not exist" in msg
+        or ("model" in msg and "access" in msg)
+    )
 
 
 @st.cache_resource(show_spinner="Loading knowledge base …")
-def load_collection(_run_id: int = 0):
-    """Load the ChromaDB collection, auto-indexing if it doesn't exist yet.
-
-    The _run_id parameter is prefixed with _ so Streamlit ignores it for
-    caching, but changing its value busts the cache (used by the re-index
-    button).
-    """
+def load_collection():
     if not CHROMA_DIR.exists():
-        st.info("Knowledge base not found — building index for the first time. This may take a few minutes …")
-        build_index()
-
+        print(f"Chroma directory does not exist: {CHROMA_DIR}")
+        return None
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
     embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name=EMBED_MODEL
     )
     try:
-        collection = client.get_collection(
+        return client.get_collection(
             name=COLLECTION_NAME,
             embedding_function=embed_fn,
         )
-    except Exception:
-        st.info("Collection not found — building index. This may take a few minutes …")
-        build_index()
-        collection = client.get_collection(
-            name=COLLECTION_NAME,
-            embedding_function=embed_fn,
-        )
-    return collection
+    except Exception as e:
+        print(f"Error loading collection: {e}")
+        return None
 
 
 def retrieve_context(collection, query: str, top_k: int = TOP_K) -> list[dict]:
@@ -120,13 +146,25 @@ def chat(client: Anthropic, messages: list[dict], user_query: str, context: str)
 
     messages_payload = messages + [{"role": "user", "content": user_content}]
 
-    response = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=2048,
-        system=SYSTEM_PROMPT,
-        messages=messages_payload,
-    )
-    return response.content[0].text
+    last_error = None
+    for model in get_candidate_models():
+        try:
+            response = client.messages.create(
+                model=model,
+                max_tokens=2048,
+                system=SYSTEM_PROMPT,
+                messages=messages_payload,
+            )
+            return response.content[0].text
+        except Exception as e:
+            last_error = e
+            if is_model_access_error(e):
+                continue
+            raise
+    raise RuntimeError(
+        "No allowed Anthropic model found for this API key. "
+        "Set ANTHROPIC_MODEL in .env to a model your key can access."
+    ) from last_error
 
 
 def main():
@@ -159,23 +197,19 @@ def main():
             st.session_state.history = []
             st.rerun()
 
-        if st.button("Re-index knowledge base"):
-            with st.spinner("Re-indexing … this may take a few minutes."):
-                build_index(reset=True)
-            load_collection.clear()
-            st.session_state.index_run_id += 1
-            st.rerun()
-
         st.divider()
         st.markdown(
             "**Knowledge base**: 2025 IRS forms, instructions, publications, "
             "and tax scenario examples."
         )
 
-    if "index_run_id" not in st.session_state:
-        st.session_state.index_run_id = 0
-
-    collection = load_collection(_run_id=st.session_state.index_run_id)
+    collection = load_collection()
+    if collection is None:
+        st.error(
+            "Knowledge base not found or could not be loaded. Please run the indexer first:\n\n"
+            "```\ncd packages/python/chat\npython indexer.py\n```"
+        )
+        st.stop()
 
     doc_count = collection.count()
     st.sidebar.success(f"{doc_count:,} documents indexed")
