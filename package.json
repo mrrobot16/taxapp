@@ -1,4 +1,5 @@
 {
+    "license": "MIT",
     "scripts": {
         "push": "git push origin development",
         "pull": "git pull origin development",
