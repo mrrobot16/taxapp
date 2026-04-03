@@ -1,4 +1,8 @@
 {
+    "name": "taxapp",
+    "version": "0.1.0",
+    "private": true,
+    "license": "MIT",
     "scripts": {
         "push": "git push origin development",
         "pull": "git pull origin development",
@@ -10,5 +14,6 @@
         "start:api": "cd packages/python/chat && poetry run uvicorn api:app --reload --port 8000",
         "scripts:indexer": "cd packages/python/chat && poetry run python scripts/indexer.py",
         "scripts:irs-forms": "cd packages/python/chat && poetry run python scripts/irs-forms.py"
-    }
+    },
+    "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
 }
