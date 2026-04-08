@@ -7,6 +7,8 @@ interface ChatInputProps {
   isLoading: boolean;
   disabled: boolean;
   disabledReason?: string;
+  /** `footer`: full-width bar at bottom. `embedded`: centered, no top border (empty state). */
+  variant?: "footer" | "embedded";
 }
 
 export default function ChatInput({
@@ -14,6 +16,7 @@ export default function ChatInput({
   isLoading,
   disabled,
   disabledReason,
+  variant = "footer",
 }: ChatInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -45,14 +48,19 @@ export default function ChatInput({
   const isBlocked = disabled || isLoading;
   const canSend = !isBlocked && value.trim().length > 0;
 
+  const outerClass =
+    variant === "embedded"
+      ? "shrink-0 w-full px-0 py-2 bg-transparent"
+      : "shrink-0 bg-rh-dark px-4 py-4";
+
   return (
-    <div className="shrink-0 border-t border-rh-border bg-rh-dark px-4 py-4">
+    <div className={outerClass}>
       {disabledReason && (
         <p className="text-xs text-amber-400 mb-2 text-center">{disabledReason}</p>
       )}
 
       <div
-        className={`flex items-center gap-2 bg-rh-surface-2 border rounded-2xl px-4 py-2 transition-colors ${
+        className={`flex items-center gap-2 bg-rh-surface-2 border rounded-[26px] px-4 py-2 transition-colors ${
           isBlocked
             ? "border-rh-border opacity-60"
             : "border-rh-border focus-within:border-rh-lime"
@@ -118,7 +126,11 @@ export default function ChatInput({
         </button>
       </div>
 
-      <p className="text-xs text-rh-cool-gray text-center mt-2">
+      <p
+        className={`text-xs text-rh-cool-gray mt-2 ${
+          variant === "embedded" ? "text-center opacity-80" : "text-center"
+        }`}
+      >
         Press <kbd className="bg-rh-surface-2 border border-rh-border rounded px-1">Enter</kbd> to send ·{" "}
         <kbd className="bg-rh-surface-2 border border-rh-border rounded px-1">Shift + Enter</kbd> for new line
       </p>

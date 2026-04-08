@@ -57,7 +57,7 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
 function UserBubble({ content }: { content: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[75%] bg-rh-lime text-rh-dark rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow font-medium">
+      <div className="max-w-[75%] bg-rh-lime text-rh-dark rounded-[24px] px-4 py-3 text-sm leading-relaxed shadow font-medium">
         {content}
       </div>
     </div>
@@ -76,14 +76,14 @@ function AssistantBubble({
   isStreaming: boolean;
 }) {
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-6">
       {/* Avatar */}
       <div className="shrink-0 mt-1 h-7 w-7 rounded-full bg-rh-border flex items-center justify-center text-sm">
         🧾
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="bg-rh-surface-2 rounded-2xl rounded-tl-sm px-4 py-3 shadow border border-rh-border">
+        <div className="rounded-2xl rounded-tl-sm shadow">
           {content ? (
             <div
               className="prose-chat text-sm text-rh-warm-white leading-relaxed"
@@ -104,7 +104,7 @@ function AssistantBubble({
         </div>
 
         {showSources && sources && sources.length > 0 && !isStreaming && (
-          <div className="mt-1 px-4">
+          <div className="mt-5">
             <SourcesPanel sources={sources} />
           </div>
         )}
@@ -151,36 +151,11 @@ export default function MessageList({
   );
 
   if (messages.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
-        <h2 className="font-serif text-xl font-semibold text-rh-white mb-2 tracking-tight">
-          Welcome to taxapp
-        </h2>
-        <p className="text-rh-warm-gray text-sm max-w-md leading-relaxed">
-          Ask any US tax question. I&apos;ll answer based strictly on IRS forms,
-          publications, and curated tax scenarios — no guessing.
-        </p>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-          {[
-            "What forms do I need for rental income?",
-            "How do I report stock sales on my taxes?",
-            "What is a Schedule K-1 and when do I need it?",
-            "Can I deduct home office expenses as a contractor?",
-          ].map((suggestion) => (
-            <div
-              key={suggestion}
-              className="bg-rh-surface border border-rh-border rounded-xl px-3 py-2 text-xs text-rh-warm-gray text-left leading-relaxed hover:border-rh-lime hover:text-rh-warm-white transition-colors cursor-default"
-            >
-              {suggestion}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
+    <div className="px-4 py-6 space-y-5">
       {messages.map((msg, i) =>
         msg.role === "user" ? (
           <UserBubble key={msg.id} content={msg.content} />

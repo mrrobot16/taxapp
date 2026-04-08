@@ -35,9 +35,12 @@ export default function Sidebar({
   return (
     <aside
       className={`
-        relative shrink-0 flex flex-col bg-rh-surface border-r border-rh-border h-full
+        flex flex-col bg-rh-surface border-r border-rh-border h-full
         transition-all duration-300 ease-in-out overflow-hidden
-        ${isOpen ? "w-[308px]" : "w-[72px]"}
+        max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[45] max-md:w-[min(100vw,308px)] max-md:shadow-xl
+        ${isOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full"}
+        md:relative md:shrink-0 md:translate-x-0
+        ${isOpen ? "md:w-[308px]" : "md:w-[72px]"}
       `}
     >
       {/* Header */}
