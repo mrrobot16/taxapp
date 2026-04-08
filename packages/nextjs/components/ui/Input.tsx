@@ -44,7 +44,7 @@ export default function Input({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         className={[
-          "w-full bg-rh-surface-2 border rounded-lg text-rh-white",
+          "w-full bg-rh-surface-2 border rounded-[26px] text-rh-white",
           "placeholder-rh-cool-gray",
           "focus:outline-none focus:ring-2 focus:ring-rh-lime focus:border-transparent",
           "disabled:opacity-50 disabled:cursor-not-allowed",

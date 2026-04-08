@@ -57,7 +57,7 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
 function UserBubble({ content }: { content: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[75%] bg-rh-lime text-rh-dark rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow font-medium">
+      <div className="max-w-[75%] bg-rh-lime text-rh-dark rounded-[24px] px-4 py-3 text-sm leading-relaxed shadow font-medium">
         {content}
       </div>
     </div>
@@ -76,14 +76,14 @@ function AssistantBubble({
   isStreaming: boolean;
 }) {
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-6">
       {/* Avatar */}
       <div className="shrink-0 mt-1 h-7 w-7 rounded-full bg-rh-border flex items-center justify-center text-sm">
         🧾
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="bg-rh-surface-2 rounded-2xl rounded-tl-sm px-4 py-3 shadow border border-rh-border">
+        <div className="rounded-2xl rounded-tl-sm shadow">
           {content ? (
             <div
               className="prose-chat text-sm text-rh-warm-white leading-relaxed"
@@ -104,7 +104,7 @@ function AssistantBubble({
         </div>
 
         {showSources && sources && sources.length > 0 && !isStreaming && (
-          <div className="mt-1 px-4">
+          <div className="mt-5">
             <SourcesPanel sources={sources} />
           </div>
         )}
