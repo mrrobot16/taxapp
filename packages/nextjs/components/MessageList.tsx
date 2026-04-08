@@ -155,7 +155,7 @@ export default function MessageList({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
+    <div className="px-4 py-6 space-y-5">
       {messages.map((msg, i) =>
         msg.role === "user" ? (
           <UserBubble key={msg.id} content={msg.content} />

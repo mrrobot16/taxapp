@@ -149,52 +149,59 @@ export default function Chat() {
         )}
 
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden w-full max-w-[760px] mx-auto">
-          {isEmpty ? (
-            <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8 overflow-y-auto min-h-0">
-              <div className="w-full flex flex-col items-center text-center">
-                <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-rh-white mb-3 tracking-tight">
-                  Welcome to taxapp
-                </h1>
-                <p className="text-rh-warm-gray text-sm max-w-md leading-relaxed mb-8">
-                  Ask any US tax question. I&apos;ll answer based strictly on IRS forms,
-                  publications, and curated tax scenarios — no guessing.
-                </p>
+          <div className="flex-1 min-h-0 overflow-y-auto w-full">
+            <div
+              className={`w-full max-w-[760px] mx-auto ${
+                isEmpty
+                  ? "min-h-full flex flex-col justify-center px-4 pb-8"
+                  : ""
+              }`}
+            >
+              {isEmpty ? (
+                <div className="flex flex-col items-center text-center w-full">
+                  <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-rh-white mb-3 tracking-tight">
+                    Welcome to taxapp
+                  </h1>
+                  <p className="text-rh-warm-gray text-sm max-w-md leading-relaxed mb-8">
+                    Ask any US tax question. I&apos;ll answer based strictly on IRS forms,
+                    publications, and curated tax scenarios — no guessing.
+                  </p>
 
-                <ChatInput
-                  variant="embedded"
-                  onSend={sendMessage}
-                  isLoading={isLoading}
-                  disabled={inputDisabled}
-                  disabledReason={disabledReason}
-                />
+                  <ChatInput
+                    variant="embedded"
+                    onSend={sendMessage}
+                    isLoading={isLoading}
+                    disabled={inputDisabled}
+                    disabledReason={disabledReason}
+                  />
 
-                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-                  {SUGGESTION_PROMPTS.map((text) => (
-                    <Button
-                      key={text}
-                      type="button"
-                      variant="outline"
-                      size="small"
-                      disabled={inputDisabled || isLoading}
-                      className="!h-auto min-h-0 py-2.5 px-3 text-left font-normal whitespace-normal"
-                      onClick={() => sendMessage(text)}
-                    >
-                      {text}
-                    </Button>
-                  ))}
+                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                    {SUGGESTION_PROMPTS.map((text) => (
+                      <Button
+                        key={text}
+                        type="button"
+                        variant="outline"
+                        size="small"
+                        disabled={inputDisabled || isLoading}
+                        className="!h-auto min-h-0 py-2.5 px-3 text-left font-normal whitespace-normal"
+                        onClick={() => sendMessage(text)}
+                      >
+                        {text}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+              ) : (
                 <MessageList
                   messages={messages}
                   isLoading={isLoading}
                   showSources={showSources}
                 />
-              </div>
+              )}
+            </div>
+          </div>
+          {!isEmpty && (
+            <div className="w-full max-w-[760px] mx-auto shrink-0">
               <ChatInput
                 variant="footer"
                 onSend={sendMessage}
@@ -202,9 +209,8 @@ export default function Chat() {
                 disabled={inputDisabled}
                 disabledReason={disabledReason}
               />
-            </>
+            </div>
           )}
-          </div>
         </div>
       </main>
     </div>
