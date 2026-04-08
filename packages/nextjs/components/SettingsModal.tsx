@@ -1,5 +1,9 @@
 "use client";
 
+import Button from "@/components/ui/Button";
+import Icon from "@/components/ui/Icon";
+import Text from "@/components/ui/Text";
+
 interface SettingsModalProps {
   showSources: boolean;
   onShowSourcesChange: (val: boolean) => void;
@@ -32,16 +36,17 @@ export default function SettingsModal({
       >
         {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-rh-border">
-          <h2 className="text-base font-semibold text-rh-white">Settings &amp; Help</h2>
-          <button
+          <Text as="h2" size="base" weight="semibold" color="white">
+            Settings &amp; Help
+          </Text>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             aria-label="Close settings"
-            className="p-1.5 rounded-lg text-rh-warm-gray hover:text-rh-white hover:bg-rh-surface-2 transition-colors"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            <Icon name="close" size="md" />
+          </Button>
         </div>
 
         {/* Modal body */}
@@ -127,14 +132,14 @@ export default function SettingsModal({
           </div>
 
           {/* Clear conversation */}
-          <div className="pt-1">
-            <button
-              onClick={() => { onClear(); onClose(); }}
-              className="w-full bg-rh-surface-2 hover:bg-rh-border border border-rh-border text-rh-warm-gray hover:text-rh-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-            >
-              Clear conversation
-            </button>
-          </div>
+          <Button
+            variant="secondary"
+            size="medium"
+            fullWidth
+            onClick={() => { onClear(); onClose(); }}
+          >
+            Clear conversation
+          </Button>
         </div>
       </div>
     </div>
