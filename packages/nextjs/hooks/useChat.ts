@@ -15,13 +15,19 @@ export interface Message {
   sources?: Source[];
 }
 
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  history: HistoryEntry[];
+}
+
 interface HistoryEntry {
   role: "user" | "assistant";
   content: string;
 }
 
 interface UseChatOptions {
-  apiKey: string;
   topK: number;
 }
 
@@ -31,18 +37,37 @@ interface UseChatReturn {
   error: string | null;
   sendMessage: (text: string) => Promise<void>;
   clearMessages: () => void;
+  conversations: Conversation[];
+  activeConversationId: string | null;
+  selectConversation: (id: string) => void;
 }
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-export function useChat({ apiKey, topK }: UseChatOptions): UseChatReturn {
+export function useChat({ topK }: UseChatOptions): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Keep a plain history for the API (no sources, no ids)
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+
   const historyRef = useRef<HistoryEntry[]>([]);
+  const activeIdRef = useRef<string | null>(null);
+
+  const selectConversation = useCallback(
+    (id: string) => {
+      const conv = conversations.find((c) => c.id === id);
+      if (!conv) return;
+      activeIdRef.current = id;
+      setActiveConversationId(id);
+      setMessages(conv.messages);
+      historyRef.current = conv.history;
+      setError(null);
+    },
+    [conversations]
+  );
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -51,6 +76,20 @@ export function useChat({ apiKey, topK }: UseChatOptions): UseChatReturn {
       setError(null);
 
       const userMsg: Message = { id: uid(), role: "user", content: text };
+
+      // Create a new conversation on the first message of a session
+      let convId = activeIdRef.current;
+      if (!convId) {
+        convId = uid();
+        activeIdRef.current = convId;
+        setActiveConversationId(convId);
+        const title = text.length > 40 ? text.slice(0, 40) + "\u2026" : text;
+        const newConv: Conversation = { id: convId, title, messages: [], history: [] };
+        setConversations((prev) => [newConv, ...prev]);
+      }
+
+      const currentConvId = convId;
+
       setMessages((prev) => [...prev, userMsg]);
 
       const assistantId = uid();
@@ -67,7 +106,6 @@ export function useChat({ apiKey, topK }: UseChatOptions): UseChatReturn {
             message: text,
             history: historyRef.current.slice(-20),
             top_k: topK,
-            api_key: apiKey,
           }),
         });
 
@@ -88,7 +126,6 @@ export function useChat({ apiKey, topK }: UseChatOptions): UseChatReturn {
 
           buffer += decoder.decode(value, { stream: true });
 
-          // SSE lines look like: "data: {...}\n\n"
           const lines = buffer.split("\n");
           buffer = lines.pop() ?? "";
 
@@ -120,7 +157,6 @@ export function useChat({ apiKey, topK }: UseChatOptions): UseChatReturn {
           }
         }
 
-        // Attach sources to the final assistant message
         if (sources.length > 0) {
           setMessages((prev) =>
             prev.map((m) =>
@@ -129,11 +165,22 @@ export function useChat({ apiKey, topK }: UseChatOptions): UseChatReturn {
           );
         }
 
-        // Update conversation history for context
         historyRef.current.push(
           { role: "user", content: text },
           { role: "assistant", content: fullAnswer }
         );
+
+        // Persist final messages + history into the conversation snapshot
+        setMessages((latestMsgs) => {
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === currentConvId
+                ? { ...c, messages: latestMsgs, history: [...historyRef.current] }
+                : c
+            )
+          );
+          return latestMsgs;
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setError(msg);
@@ -148,14 +195,25 @@ export function useChat({ apiKey, topK }: UseChatOptions): UseChatReturn {
         setIsLoading(false);
       }
     },
-    [apiKey, topK, isLoading]
+    [topK, isLoading]
   );
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     setError(null);
     historyRef.current = [];
+    activeIdRef.current = null;
+    setActiveConversationId(null);
   }, []);
 
-  return { messages, isLoading, error, sendMessage, clearMessages };
+  return {
+    messages,
+    isLoading,
+    error,
+    sendMessage,
+    clearMessages,
+    conversations,
+    activeConversationId,
+    selectConversation,
+  };
 }

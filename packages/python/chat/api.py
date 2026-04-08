@@ -177,7 +177,6 @@ class ChatRequest(BaseModel):
     message: str
     history: list[HistoryMessage] = []
     top_k: int = TOP_K
-    api_key: str
 
 
 @app.get("/api/health")
@@ -194,8 +193,9 @@ async def chat_endpoint(req: ChatRequest):
     if collection is None:
         raise HTTPException(status_code=503, detail="Knowledge base not indexed yet.")
 
-    if not req.api_key:
-        raise HTTPException(status_code=400, detail="api_key is required.")
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not anthropic_api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY is not configured on the server.")
 
     async def generate():
         chunks = retrieve_context(collection, req.message, top_k=req.top_k)
@@ -218,7 +218,7 @@ async def chat_endpoint(req: ChatRequest):
         ]
         messages_payload = history_payload + [{"role": "user", "content": user_content}]
 
-        client = Anthropic(api_key=req.api_key)
+        client = Anthropic(api_key=anthropic_api_key)
         streamed = False
         last_error = None
         for model in get_candidate_models():
