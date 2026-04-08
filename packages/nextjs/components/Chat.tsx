@@ -149,9 +149,10 @@ export default function Chat() {
         )}
 
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden w-full max-w-[760px] mx-auto">
           {isEmpty ? (
             <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8 overflow-y-auto min-h-0">
-              <div className="w-full max-w-2xl flex flex-col items-center text-center">
+              <div className="w-full flex flex-col items-center text-center">
                 <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-rh-white mb-3 tracking-tight">
                   Welcome to taxapp
                 </h1>
@@ -168,7 +169,7 @@ export default function Chat() {
                   disabledReason={disabledReason}
                 />
 
-                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-2xl">
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                   {SUGGESTION_PROMPTS.map((text) => (
                     <Button
                       key={text}
@@ -203,6 +204,7 @@ export default function Chat() {
               />
             </>
           )}
+          </div>
         </div>
       </main>
     </div>
