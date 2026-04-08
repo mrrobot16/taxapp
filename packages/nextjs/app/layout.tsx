@@ -15,7 +15,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "IRS Copilot",
+  title: "Taxapp",
   description: "RAG-powered US tax assistant grounded in IRS forms and publications",
 };
 

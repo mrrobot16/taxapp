@@ -151,32 +151,7 @@ export default function MessageList({
   );
 
   if (messages.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
-        <h2 className="font-serif text-xl font-semibold text-rh-white mb-2 tracking-tight">
-          Welcome to taxapp
-        </h2>
-        <p className="text-rh-warm-gray text-sm max-w-md leading-relaxed">
-          Ask any US tax question. I&apos;ll answer based strictly on IRS forms,
-          publications, and curated tax scenarios — no guessing.
-        </p>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-          {[
-            "What forms do I need for rental income?",
-            "How do I report stock sales on my taxes?",
-            "What is a Schedule K-1 and when do I need it?",
-            "Can I deduct home office expenses as a contractor?",
-          ].map((suggestion) => (
-            <div
-              key={suggestion}
-              className="bg-rh-surface border border-rh-border rounded-xl px-3 py-2 text-xs text-rh-warm-gray text-left leading-relaxed hover:border-rh-lime hover:text-rh-warm-white transition-colors cursor-default"
-            >
-              {suggestion}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
