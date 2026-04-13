@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, KeyboardEvent } from "react";
+import Icon from "@/components/ui/Icon";
 
 interface ChatInputProps {
   onSend: (text: string) => void;
@@ -89,39 +90,9 @@ export default function ChatInput({
           aria-label="Send"
         >
           {isLoading ? (
-            <svg
-              className="animate-spin h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8H4z"
-              />
-            </svg>
+            <Icon name="spinner" size="sm" />
           ) : (
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5 12h14M12 5l7 7-7 7"
-              />
-            </svg>
+            <Icon name="send" size="sm" />
           )}
         </button>
       </div>
