@@ -18,6 +18,7 @@ const config: Config = {
         "rh-surface": "#251f13",
         "rh-surface-2": "#2e2819",
         "rh-border": "#3a3326",
+        "rh-green": "#1a8a38",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],

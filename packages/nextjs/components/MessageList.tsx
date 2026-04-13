@@ -3,6 +3,7 @@
 import { memo, useEffect, useMemo, useRef, type ComponentPropsWithoutRef } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import Image from "next/image";
 import type { Message, Source } from "@/hooks/useChat";
 import Icon from "@/components/ui/Icon";
 
@@ -120,7 +121,7 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
 const UserBubble = memo(function UserBubble({ content }: { content: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[75%] bg-rh-lime text-rh-dark rounded-[24px] px-4 py-3 text-sm leading-relaxed shadow font-medium">
+      <div className="max-w-[75%] bg-rh-green text-white rounded-[24px] px-4 py-3 text-sm leading-relaxed shadow font-medium">
         {content}
       </div>
     </div>
@@ -149,9 +150,13 @@ const AssistantBubble = memo(function AssistantBubble({
 
   return (
     <div className="flex gap-6">
-      <div className="shrink-0 mt-1 h-7 w-7 rounded-full bg-rh-border flex items-center justify-center text-sm">
-        🧾
-      </div>
+      <Image
+        src="/favicon.png"
+        alt="Taxapp"
+        width={28}
+        height={28}
+        className="shrink-0 mt-1 h-7 w-7 object-cover"
+      />
 
       <div className="flex-1 min-w-0">
         <div>
