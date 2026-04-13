@@ -97,26 +97,13 @@ export default function Sidebar({
                 <li key={conv.id}>
                   <button
                     onClick={() => onSelectConversation(conv.id)}
-                    className={`w-full text-left flex items-center gap-2 px-3 py-2.5 mx-1 text-sm rounded-lg transition-colors ${
+                    className={`w-full max-w-[calc(100%-8px)] text-left flex items-center gap-2 px-3 py-2.5 mx-1 text-sm rounded-lg transition-colors ${
                       conv.id === activeConversationId
                         ? "bg-rh-surface-2 text-rh-white"
                         : "text-rh-warm-gray hover:bg-rh-surface-2 hover:text-rh-white"
                     }`}
-                    style={{ maxWidth: "calc(100% - 8px)" }}
                   >
-                    <svg
-                      className="h-4 w-4 shrink-0 text-rh-cool-gray"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5l-3 3v-3z"
-                      />
-                    </svg>
+                    <Icon name="chat" size="sm" className="shrink-0 text-rh-cool-gray" />
                     <span className="truncate">{conv.title}</span>
                   </button>
                 </li>
