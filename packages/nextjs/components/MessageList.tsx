@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import type { Message, Source } from "@/hooks/useChat";
+import Icon from "@/components/ui/Icon";
 
 interface MessageListProps {
   messages: Message[];
@@ -13,15 +14,7 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
   return (
     <details className="mt-2 group">
       <summary className="cursor-pointer text-xs text-rh-lime hover:text-rh-warm-white font-medium list-none flex items-center gap-1 select-none">
-        <svg
-          className="h-3 w-3 transition-transform group-open:rotate-90"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
+        <Icon name="chevron-right" size="sm" className="h-3 w-3 transition-transform group-open:rotate-90" />
         Sources ({sources.length} retrieved)
       </summary>
 
@@ -54,7 +47,7 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
   );
 }
 
-function UserBubble({ content }: { content: string }) {
+const UserBubble = memo(function UserBubble({ content }: { content: string }) {
   return (
     <div className="flex justify-end">
       <div className="max-w-[75%] bg-rh-lime text-rh-dark rounded-[24px] px-4 py-3 text-sm leading-relaxed shadow font-medium">
@@ -62,9 +55,9 @@ function UserBubble({ content }: { content: string }) {
       </div>
     </div>
   );
-}
+});
 
-function AssistantBubble({
+const AssistantBubble = memo(function AssistantBubble({
   content,
   sources,
   showSources,
@@ -75,19 +68,20 @@ function AssistantBubble({
   showSources: boolean;
   isStreaming: boolean;
 }) {
+  const html = useMemo(() => formatMarkdown(content), [content]);
+
   return (
     <div className="flex gap-6">
-      {/* Avatar */}
       <div className="shrink-0 mt-1 h-7 w-7 rounded-full bg-rh-border flex items-center justify-center text-sm">
         🧾
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="rounded-2xl rounded-tl-sm shadow">
+        <div>
           {content ? (
             <div
               className="prose-chat text-sm text-rh-warm-white leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: formatMarkdown(content) }}
+              dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (
             isStreaming && (
@@ -111,7 +105,7 @@ function AssistantBubble({
       </div>
     </div>
   );
-}
+});
 
 /**
  * Very lightweight markdown → HTML converter.
@@ -140,9 +134,14 @@ export default function MessageList({
   showSources,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 120);
+    return () => { if (scrollTimer.current) clearTimeout(scrollTimer.current); };
   }, [messages]);
 
   const lastAssistantIndex = messages.reduce(

@@ -23,20 +23,6 @@ const config: Config = {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         serif: ["var(--font-serif)", "ui-serif", "Georgia", "serif"],
       },
-      typography: {
-        DEFAULT: {
-          css: {
-            color: "#d4d0c8",
-            a: { color: "#ccff00" },
-            strong: { color: "#ffffff" },
-            code: { color: "#ffffff" },
-            h1: { color: "#ffffff", fontFamily: "var(--font-serif)" },
-            h2: { color: "#ffffff", fontFamily: "var(--font-serif)" },
-            h3: { color: "#ffffff", fontFamily: "var(--font-serif)" },
-            li: { color: "#d4d0c8" },
-          },
-        },
-      },
     },
   },
   plugins: [],

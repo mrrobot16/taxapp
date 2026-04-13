@@ -3,6 +3,7 @@
 import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
 import Text from "@/components/ui/Text";
+import type { BackendStatus } from "@/hooks/useChat";
 
 interface SettingsModalProps {
   showSources: boolean;
@@ -11,7 +12,7 @@ interface SettingsModalProps {
   onTopKChange: (val: number) => void;
   onClear: () => void;
   docCount: number | null;
-  backendStatus: "ok" | "no_index" | "offline" | "loading";
+  backendStatus: BackendStatus;
   onClose: () => void;
 }
 

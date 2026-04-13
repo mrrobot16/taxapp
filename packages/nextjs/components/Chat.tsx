@@ -8,9 +8,11 @@ import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
-import { useChat } from "@/hooks/useChat";
+import { useChat, type BackendStatus } from "@/hooks/useChat";
 
-type BackendStatus = "loading" | "ok" | "no_index" | "offline";
+function isMobile() {
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+}
 
 const SUGGESTION_PROMPTS = [
   "What forms do I need for rental income?",
@@ -29,9 +31,7 @@ export default function Chat() {
 
   // Mobile: start with drawer closed so main uses full width; desktop keeps sidebar expanded
   useEffect(() => {
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
-      setSidebarOpen(false);
-    }
+    if (isMobile()) setSidebarOpen(false);
   }, []);
 
   const {
@@ -86,15 +86,11 @@ export default function Chat() {
         activeConversationId={activeConversationId}
         onSelectConversation={(id) => {
           selectConversation(id);
-          if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
-            setSidebarOpen(false);
-          }
+          if (isMobile()) setSidebarOpen(false);
         }}
         onSettingsOpen={() => {
           setSettingsOpen(true);
-          if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
-            setSidebarOpen(false);
-          }
+          if (isMobile()) setSidebarOpen(false);
         }}
       />
 
