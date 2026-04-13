@@ -39,67 +39,90 @@
   background: var(--color-rh-cool-gray);
 }
 
-/* Markdown-rendered content inside assistant messages */
-.prose-chat h1,
-.prose-chat h2,
-.prose-chat h3 {
-  color: var(--color-rh-white);
-  font-family: var(--font-serif);
-  font-weight: 600;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
+/*
+ * Markdown-rendered content inside assistant messages.
+ * Primary styling is via Tailwind classes in the ReactMarkdown component map.
+ * These rules act as fallback / nested-element overrides.
+ */
+
+/* Remove leading margin on the very first element in a message */
+.prose-chat > *:first-child {
+  margin-top: 0 !important;
 }
 
-.prose-chat p {
-  margin-bottom: 0.75rem;
-  line-height: 1.7;
+/* Remove trailing margin on the very last element */
+.prose-chat > *:last-child {
+  margin-bottom: 0 !important;
 }
 
-.prose-chat ul,
-.prose-chat ol {
-  padding-left: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.prose-chat li {
-  margin-bottom: 0.25rem;
-}
-
-.prose-chat strong {
-  color: var(--color-rh-white);
-  font-weight: 600;
-}
-
-.prose-chat code {
-  background: var(--color-rh-border);
-  padding: 0.1rem 0.3rem;
-  border-radius: 3px;
-  font-size: 0.875em;
-  color: var(--color-rh-lime);
-}
-
-.prose-chat pre {
-  background: var(--color-rh-surface);
-  padding: 1rem;
-  border-radius: 8px;
-  overflow-x: auto;
-  margin-bottom: 0.75rem;
-}
-
+/* Code inside pre blocks inherits pre styling */
 .prose-chat pre code {
   background: transparent;
   padding: 0;
   color: var(--color-rh-warm-white);
+  font-size: inherit;
+  border-radius: 0;
 }
 
-.prose-chat a {
-  color: var(--color-rh-lime);
-  text-decoration: underline;
+/* Nested lists get extra indent */
+.prose-chat ul ul,
+.prose-chat ol ol,
+.prose-chat ul ol,
+.prose-chat ol ul {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
-.prose-chat blockquote {
-  border-left: 3px solid var(--color-rh-border);
-  padding-left: 1rem;
+/* Paragraphs inside list items should be tight */
+.prose-chat li > p {
+  margin-bottom: 0.25rem;
+}
+.prose-chat li > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Table last row doesn't need a bottom border */
+.prose-chat table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Horizontal rule spacing */
+.prose-chat hr {
+  border-color: var(--color-rh-border);
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Task list checkboxes (GFM) */
+.prose-chat input[type="checkbox"] {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1.5px solid var(--color-rh-cool-gray);
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+  position: relative;
+  top: -1px;
+}
+.prose-chat input[type="checkbox"]:checked {
+  background: var(--color-rh-lime);
+  border-color: var(--color-rh-lime);
+}
+.prose-chat input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-rh-dark);
+}
+
+/* Strikethrough (GFM) */
+.prose-chat del {
   color: var(--color-rh-cool-gray);
-  font-style: italic;
+  text-decoration: line-through;
 }

@@ -1,8 +1,78 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef, type ComponentPropsWithoutRef } from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Message, Source } from "@/hooks/useChat";
 import Icon from "@/components/ui/Icon";
+
+const mdComponents: Components = {
+  h1: ({ children, ...props }: ComponentPropsWithoutRef<"h1">) => (
+    <h1 className="font-serif text-xl font-semibold text-rh-white mt-5 mb-2 first:mt-0" {...props}>{children}</h1>
+  ),
+  h2: ({ children, ...props }: ComponentPropsWithoutRef<"h2">) => (
+    <h2 className="font-serif text-lg font-semibold text-rh-white mt-5 mb-2 first:mt-0" {...props}>{children}</h2>
+  ),
+  h3: ({ children, ...props }: ComponentPropsWithoutRef<"h3">) => (
+    <h3 className="font-serif text-base font-semibold text-rh-white mt-4 mb-1.5 first:mt-0" {...props}>{children}</h3>
+  ),
+  p: ({ children, ...props }: ComponentPropsWithoutRef<"p">) => (
+    <p className="mb-3 leading-[1.7] last:mb-0" {...props}>{children}</p>
+  ),
+  strong: ({ children, ...props }: ComponentPropsWithoutRef<"strong">) => (
+    <strong className="font-semibold text-rh-white" {...props}>{children}</strong>
+  ),
+  em: ({ children, ...props }: ComponentPropsWithoutRef<"em">) => (
+    <em className="italic text-rh-warm-gray" {...props}>{children}</em>
+  ),
+  a: ({ children, ...props }: ComponentPropsWithoutRef<"a">) => (
+    <a className="text-rh-lime underline hover:opacity-80" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>
+  ),
+  ul: ({ children, ...props }: ComponentPropsWithoutRef<"ul">) => (
+    <ul className="list-disc pl-5 mb-3 space-y-1 marker:text-rh-cool-gray" {...props}>{children}</ul>
+  ),
+  ol: ({ children, ...props }: ComponentPropsWithoutRef<"ol">) => (
+    <ol className="list-decimal pl-5 mb-3 space-y-1 marker:text-rh-cool-gray" {...props}>{children}</ol>
+  ),
+  li: ({ children, ...props }: ComponentPropsWithoutRef<"li">) => (
+    <li className="leading-relaxed pl-1" {...props}>{children}</li>
+  ),
+  blockquote: ({ children, ...props }: ComponentPropsWithoutRef<"blockquote">) => (
+    <blockquote className="border-l-3 border-rh-border pl-4 my-3 text-rh-cool-gray italic" {...props}>{children}</blockquote>
+  ),
+  hr: (props: ComponentPropsWithoutRef<"hr">) => (
+    <hr className="border-rh-border my-5" {...props} />
+  ),
+  code: ({ children, className, ...props }: ComponentPropsWithoutRef<"code">) => {
+    const isBlock = className?.includes("language-");
+    if (isBlock) {
+      return <code className={`block text-rh-warm-white ${className ?? ""}`} {...props}>{children}</code>;
+    }
+    return (
+      <code className="bg-rh-border/60 text-rh-lime px-1.5 py-0.5 rounded text-[0.85em] font-mono" {...props}>{children}</code>
+    );
+  },
+  pre: ({ children, ...props }: ComponentPropsWithoutRef<"pre">) => (
+    <pre className="bg-rh-surface rounded-lg p-4 overflow-x-auto mb-3 text-[0.85rem] leading-relaxed" {...props}>{children}</pre>
+  ),
+  table: ({ children, ...props }: ComponentPropsWithoutRef<"table">) => (
+    <div className="my-4 overflow-x-auto rounded-lg border border-rh-border">
+      <table className="w-full text-sm border-collapse" {...props}>{children}</table>
+    </div>
+  ),
+  thead: ({ children, ...props }: ComponentPropsWithoutRef<"thead">) => (
+    <thead className="bg-rh-surface-2" {...props}>{children}</thead>
+  ),
+  th: ({ children, ...props }: ComponentPropsWithoutRef<"th">) => (
+    <th className="text-left px-4 py-2.5 font-semibold text-rh-warm-white text-xs uppercase tracking-wider border-b border-rh-border" {...props}>{children}</th>
+  ),
+  td: ({ children, ...props }: ComponentPropsWithoutRef<"td">) => (
+    <td className="px-4 py-2.5 text-rh-warm-white border-b border-rh-border/50" {...props}>{children}</td>
+  ),
+  tr: ({ children, ...props }: ComponentPropsWithoutRef<"tr">) => (
+    <tr className="even:bg-rh-surface/40 transition-colors" {...props}>{children}</tr>
+  ),
+};
 
 interface MessageListProps {
   messages: Message[];
@@ -68,7 +138,14 @@ const AssistantBubble = memo(function AssistantBubble({
   showSources: boolean;
   isStreaming: boolean;
 }) {
-  const html = useMemo(() => formatMarkdown(content), [content]);
+  const rendered = useMemo(
+    () => (
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+        {content}
+      </ReactMarkdown>
+    ),
+    [content],
+  );
 
   return (
     <div className="flex gap-6">
@@ -79,10 +156,9 @@ const AssistantBubble = memo(function AssistantBubble({
       <div className="flex-1 min-w-0">
         <div>
           {content ? (
-            <div
-              className="prose-chat text-sm text-rh-warm-white leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
+            <div className="prose-chat text-sm text-rh-warm-white leading-relaxed">
+              {rendered}
+            </div>
           ) : (
             isStreaming && (
               <div className="flex gap-1 items-center py-1">
@@ -106,27 +182,6 @@ const AssistantBubble = memo(function AssistantBubble({
     </div>
   );
 });
-
-/**
- * Very lightweight markdown → HTML converter.
- * Handles: bold, inline code, code blocks, headings, bullet lists, numbered lists, line breaks.
- */
-function formatMarkdown(text: string): string {
-  return text
-    .replace(/```[\w]*\n?([\s\S]*?)```/g, "<pre><code>$1</code></pre>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.*?)\*/g, "<em>$1</em>")
-    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-    .replace(/^[-*] (.+)$/gm, "<li>$1</li>")
-    .replace(/^\d+\. (.+)$/gm, "<li>$1</li>")
-    .replace(/(<li>.*<\/li>(\n|$))+/g, (match) => `<ul>${match}</ul>`)
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/\n/g, "<br />")
-    .replace(/^(?!<[hup]|<pre)(.+)/, "<p>$1</p>");
-}
 
 export default function MessageList({
   messages,
