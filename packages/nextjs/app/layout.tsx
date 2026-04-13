@@ -17,6 +17,7 @@ const lora = Lora({
 export const metadata: Metadata = {
   title: "Taxapp",
   description: "RAG-powered US tax assistant grounded in IRS forms and publications",
+  icons: { icon: "/favicon.png" },
 };
 
 export const viewport: Viewport = {
