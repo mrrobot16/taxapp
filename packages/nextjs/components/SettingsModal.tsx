@@ -103,8 +103,8 @@ export default function SettingsModal({
               </div>
             )}
             {backendStatus === "ok" && (
-              <div className="flex items-center gap-2 text-xs text-[#4ade80]">
-                <span className="inline-block h-2 w-2 rounded-full bg-[#4ade80]" />
+              <div className="flex items-center gap-2 text-xs text-rh-green">
+                <span className="inline-block h-2 w-2 rounded-full bg-rh-green" />
                 {docCount?.toLocaleString()} documents indexed
               </div>
             )}
