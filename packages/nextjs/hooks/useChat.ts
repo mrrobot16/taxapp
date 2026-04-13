@@ -22,6 +22,8 @@ export interface Conversation {
   history: HistoryEntry[];
 }
 
+export type BackendStatus = "loading" | "ok" | "no_index" | "offline";
+
 interface HistoryEntry {
   role: "user" | "assistant";
   content: string;
@@ -55,23 +57,23 @@ export function useChat({ topK }: UseChatOptions): UseChatReturn {
 
   const historyRef = useRef<HistoryEntry[]>([]);
   const activeIdRef = useRef<string | null>(null);
+  const isLoadingRef = useRef(false);
+  const conversationsRef = useRef(conversations);
+  conversationsRef.current = conversations;
 
-  const selectConversation = useCallback(
-    (id: string) => {
-      const conv = conversations.find((c) => c.id === id);
-      if (!conv) return;
-      activeIdRef.current = id;
-      setActiveConversationId(id);
-      setMessages(conv.messages);
-      historyRef.current = conv.history;
-      setError(null);
-    },
-    [conversations]
-  );
+  const selectConversation = useCallback((id: string) => {
+    const conv = conversationsRef.current.find((c) => c.id === id);
+    if (!conv) return;
+    activeIdRef.current = id;
+    setActiveConversationId(id);
+    setMessages(conv.messages);
+    historyRef.current = conv.history;
+    setError(null);
+  }, []);
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!text.trim() || isLoading) return;
+      if (!text.trim() || isLoadingRef.current) return;
 
       setError(null);
 
@@ -97,6 +99,7 @@ export function useChat({ topK }: UseChatOptions): UseChatReturn {
       setMessages((prev) => [...prev, assistantMsg]);
 
       setIsLoading(true);
+      isLoadingRef.current = true;
 
       try {
         const res = await fetch("/api/chat", {
@@ -193,9 +196,10 @@ export function useChat({ topK }: UseChatOptions): UseChatReturn {
         );
       } finally {
         setIsLoading(false);
+        isLoadingRef.current = false;
       }
     },
-    [topK, isLoading]
+    [topK]
   );
 
   const clearMessages = useCallback(() => {
