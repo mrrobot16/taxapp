@@ -6,6 +6,7 @@ type IconName =
   | "send"
   | "chevron-right"
   | "chat"
+  | "check"
   | "spinner";
 
 type Size = "sm" | "md" | "lg";
@@ -51,6 +52,10 @@ const paths: Record<IconName, { strokeWidth?: number; path: string; fill?: strin
   chat: {
     strokeWidth: 1.5,
     path: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5l-3 3v-3z",
+  },
+  check: {
+    strokeWidth: 2.5,
+    path: "M5 13l4 4L19 7",
   },
   spinner: {
     strokeWidth: 4,

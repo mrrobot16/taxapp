@@ -23,5 +23,12 @@ export const SUGGESTION_PROMPTS = [
   "Can I deduct home office expenses as a contractor?",
 ] as const;
 
+export const STREAM_PHASE_CHECK_DISPLAY_MS = 400;
+export const STREAM_PHASES = [
+  { label: "Connecting to assistant", afterMs: 0 },
+  { label: "Searching IRS knowledge base", afterMs: 1500 },
+  { label: "Preparing response", afterMs: 3500 },
+] as const;
+
 export const BACKEND_UNREACHABLE_ERROR_MESSAGE =
   "Could not reach the Python backend. Make sure it is running on port 8000.";
