@@ -1,22 +1,28 @@
 import { NextRequest } from "next/server";
+import {
+  API_ROUTES,
+  BACKEND_UNREACHABLE_ERROR_MESSAGE,
+  DEFAULT_BACKEND_URL,
+  HTTP_STATUS_SERVICE_UNAVAILABLE,
+} from "@/constants";
 
 // Use 127.0.0.1 explicitly to avoid IPv6 resolution issues with localhost
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+const BACKEND_URL = process.env.BACKEND_URL ?? DEFAULT_BACKEND_URL;
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
   let upstream: Response;
   try {
-    upstream = await fetch(`${BACKEND_URL}/api/chat`, {
+    upstream = await fetch(`${BACKEND_URL}${API_ROUTES.chat}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
   } catch {
     return new Response(
-      JSON.stringify({ error: "Could not reach the Python backend. Make sure it is running on port 8000." }),
-      { status: 503, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: BACKEND_UNREACHABLE_ERROR_MESSAGE }),
+      { status: HTTP_STATUS_SERVICE_UNAVAILABLE, headers: { "Content-Type": "application/json" } }
     );
   }
 

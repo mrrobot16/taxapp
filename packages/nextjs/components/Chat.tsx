@@ -9,21 +9,20 @@ import ChatInput from "./ChatInput";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/ui/Icon";
 import { useChat, type BackendStatus } from "@/hooks/useChat";
+import {
+  API_ROUTES,
+  CHAT_DEFAULT_TOP_K,
+  HTTP_STATUS_SERVICE_UNAVAILABLE,
+  SUGGESTION_PROMPTS,
+} from "@/constants";
 
 function isMobile() {
   return typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
 }
 
-const SUGGESTION_PROMPTS = [
-  "What forms do I need for rental income?",
-  "How do I report stock sales on my taxes?",
-  "What is a Schedule K-1 and when do I need it?",
-  "Can I deduct home office expenses as a contractor?",
-];
-
 export default function Chat() {
   const [showSources, setShowSources] = useState(true);
-  const [topK, setTopK] = useState(8);
+  const [topK, setTopK] = useState(CHAT_DEFAULT_TOP_K);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>("loading");
   const [docCount, setDocCount] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -50,9 +49,9 @@ export default function Chat() {
   useEffect(() => {
     async function checkHealth() {
       try {
-        const res = await fetch("/api/health");
+        const res = await fetch(API_ROUTES.health);
         const data = await res.json();
-        if (res.status === 503 || data.status === "offline") {
+        if (res.status === HTTP_STATUS_SERVICE_UNAVAILABLE || data.status === "offline") {
           setBackendStatus("offline");
         } else if (data.status === "no_index") {
           setBackendStatus("no_index");
