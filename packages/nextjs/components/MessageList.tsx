@@ -6,6 +6,10 @@ import remarkGfm from "remark-gfm";
 import Image from "next/image";
 import type { Message, Source } from "@/hooks/useChat";
 import Icon from "@/components/ui/Icon";
+import {
+  MESSAGE_LIST_AUTOSCROLL_DELAY_MS,
+  SOURCES_TEXT_PREVIEW_LENGTH,
+} from "@/constants";
 
 const mdComponents: Components = {
   h1: ({ children, ...props }: ComponentPropsWithoutRef<"h1">) => (
@@ -105,7 +109,9 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
                 </span>
               </div>
               <p className="text-rh-cool-gray line-clamp-3 leading-relaxed">
-                {src.text.length > 300 ? src.text.slice(0, 300) + "…" : src.text}
+                {src.text.length > SOURCES_TEXT_PREVIEW_LENGTH
+                  ? src.text.slice(0, SOURCES_TEXT_PREVIEW_LENGTH) + "…"
+                  : src.text}
               </p>
               {i < sources.length - 1 && (
                 <hr className="mt-2 border-rh-border" />
@@ -200,7 +206,7 @@ export default function MessageList({
     if (scrollTimer.current) clearTimeout(scrollTimer.current);
     scrollTimer.current = setTimeout(() => {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 120);
+    }, MESSAGE_LIST_AUTOSCROLL_DELAY_MS);
     return () => { if (scrollTimer.current) clearTimeout(scrollTimer.current); };
   }, [messages]);
 

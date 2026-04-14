@@ -1,6 +1,13 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import {
+  API_ROUTES,
+  CHAT_HISTORY_WINDOW,
+  CONVERSATION_TITLE_PREVIEW_LENGTH,
+  RANDOM_ID_SLICE_END,
+  RANDOM_ID_SLICE_START,
+} from "@/constants";
 
 export interface Source {
   text: string;
@@ -45,7 +52,7 @@ interface UseChatReturn {
 }
 
 function uid() {
-  return Math.random().toString(36).slice(2, 10);
+  return Math.random().toString(36).slice(RANDOM_ID_SLICE_START, RANDOM_ID_SLICE_END);
 }
 
 export function useChat({ topK }: UseChatOptions): UseChatReturn {
@@ -85,7 +92,10 @@ export function useChat({ topK }: UseChatOptions): UseChatReturn {
         convId = uid();
         activeIdRef.current = convId;
         setActiveConversationId(convId);
-        const title = text.length > 40 ? text.slice(0, 40) + "\u2026" : text;
+        const title =
+          text.length > CONVERSATION_TITLE_PREVIEW_LENGTH
+            ? text.slice(0, CONVERSATION_TITLE_PREVIEW_LENGTH) + "\u2026"
+            : text;
         const newConv: Conversation = { id: convId, title, messages: [], history: [] };
         setConversations((prev) => [newConv, ...prev]);
       }
@@ -102,12 +112,12 @@ export function useChat({ topK }: UseChatOptions): UseChatReturn {
       isLoadingRef.current = true;
 
       try {
-        const res = await fetch("/api/chat", {
+        const res = await fetch(API_ROUTES.chat, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: text,
-            history: historyRef.current.slice(-20),
+            history: historyRef.current.slice(-CHAT_HISTORY_WINDOW),
             top_k: topK,
           }),
         });
