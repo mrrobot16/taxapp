@@ -7,9 +7,12 @@ Run with:
     poetry run uvicorn api:app --reload --port 8000
 """
 
+import asyncio
 import json
 import os
+import queue
 import textwrap
+import threading
 from pathlib import Path
 
 import chromadb
@@ -18,9 +21,9 @@ from anthropic import Anthropic
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
-from sse_starlette.sse import EventSourceResponse
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
@@ -32,6 +35,7 @@ EMBED_MODEL = "multi-qa-MiniLM-L6-cos-v1"
 
 TOP_K = 8
 MAX_HISTORY = 10
+MIN_CONTEXT_SCORE = 0.45
 DEFAULT_ANTHROPIC_MODELS = [
     "claude-sonnet-4-6",
     "claude-sonnet-4-20250514",
@@ -161,6 +165,10 @@ def retrieve_context(collection, query: str, top_k: int = TOP_K) -> list[dict]:
     return chunks
 
 
+def filter_relevant_chunks(chunks: list[dict], min_score: float = MIN_CONTEXT_SCORE) -> list[dict]:
+    return [chunk for chunk in chunks if chunk["score"] >= min_score]
+
+
 def build_context_block(chunks: list[dict]) -> str:
     parts = []
     for i, chunk in enumerate(chunks, 1):
@@ -176,6 +184,10 @@ def build_context_block(chunks: list[dict]) -> str:
         }.get(meta.get("source", ""), meta.get("file", ""))
         parts.append(f"[Source {i}: {source_label}]\n{chunk['text']}")
     return "\n\n---\n\n".join(parts)
+
+
+def format_sse_event(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
 
 
 class HistoryMessage(BaseModel):
@@ -207,70 +219,113 @@ async def chat_endpoint(req: ChatRequest):
     if not anthropic_api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY is not configured on the server.")
 
-    async def generate():
-        chunks = retrieve_context(collection, req.message, top_k=req.top_k)
-        context_block = build_context_block(chunks)
+    def run_pipeline(event_queue: queue.Queue):
+        def emit(payload: dict):
+            event_queue.put(payload)
 
-        user_content = textwrap.dedent(f"""
-            ## Retrieved IRS Knowledge Base Context
+        try:
+            emit({"type": "phase", "label": "Searching IRS knowledge base"})
+            retrieved_chunks = retrieve_context(collection, req.message, top_k=req.top_k)
 
-            {context_block}
-
-            ---
-
-            ## Question
-
-            {req.message}
-        """).strip()
-
-        history_payload = [
-            {"role": m.role, "content": m.content} for m in req.history[-MAX_HISTORY * 2:]
-        ]
-        messages_payload = history_payload + [{"role": "user", "content": user_content}]
-
-        client = Anthropic(api_key=anthropic_api_key)
-        streamed = False
-        last_error = None
-        for model in get_candidate_models():
-            try:
-                with client.messages.stream(
-                    model=model,
-                    max_tokens=2048,
-                    system=SYSTEM_PROMPT,
-                    messages=messages_payload,
-                ) as stream:
-                    streamed = True
-                    for text_chunk in stream.text_stream:
-                        yield {
-                            "data": json.dumps({"type": "text", "content": text_chunk})
-                        }
-                break
-            except Exception as e:
-                last_error = e
-                if is_model_access_error(e):
-                    continue
-                yield {"data": json.dumps({"type": "error", "message": str(e)})}
+            chunks = filter_relevant_chunks(retrieved_chunks)
+            if not chunks:
+                emit({"type": "phase", "label": "No relevant IRS sources found"})
+                emit(
+                    {
+                        "type": "text",
+                        "content": (
+                            "I don't have enough relevant IRS context to answer this confidently. "
+                            "Try rephrasing the question with the exact form, publication, "
+                            "or tax topic you need."
+                        ),
+                    }
+                )
+                emit({"type": "sources", "sources": []})
+                emit({"type": "done"})
                 return
 
-        if not streamed:
-            msg = (
-                "No allowed Anthropic model found for this API key. "
-                "Set ANTHROPIC_MODEL in .env to a model your key can access."
-            )
-            if last_error is not None:
-                msg = f"{msg} ({last_error})"
-            yield {"data": json.dumps({"type": "error", "message": msg})}
-            return
+            context_block = build_context_block(chunks)
 
-        sources = [
-            {
-                "text": c["text"][:600],
-                "metadata": c["metadata"],
-                "score": round(c["score"], 3),
-            }
-            for c in chunks
-        ]
-        yield {"data": json.dumps({"type": "sources", "sources": sources})}
-        yield {"data": json.dumps({"type": "done"})}
+            user_content = textwrap.dedent(f"""
+                ## Retrieved IRS Knowledge Base Context
 
-    return EventSourceResponse(generate())
+                {context_block}
+
+                ---
+
+                ## Question
+
+                {req.message}
+            """).strip()
+
+            history_payload = [
+                {"role": m.role, "content": m.content} for m in req.history[-MAX_HISTORY * 2:]
+            ]
+            messages_payload = history_payload + [{"role": "user", "content": user_content}]
+
+            emit({"type": "phase", "label": "Preparing your answer"})
+            client = Anthropic(api_key=anthropic_api_key)
+            streamed = False
+            last_error = None
+
+            for model in get_candidate_models():
+                try:
+                    with client.messages.stream(
+                        model=model,
+                        max_tokens=2048,
+                        system=SYSTEM_PROMPT,
+                        messages=messages_payload,
+                    ) as stream:
+                        streamed = True
+                        for text_chunk in stream.text_stream:
+                            emit({"type": "text", "content": text_chunk})
+                    break
+                except Exception as e:
+                    last_error = e
+                    if is_model_access_error(e):
+                        continue
+                    emit({"type": "error", "message": str(e)})
+                    return
+
+            if not streamed:
+                msg = (
+                    "No allowed Anthropic model found for this API key. "
+                    "Set ANTHROPIC_MODEL in .env to a model your key can access."
+                )
+                if last_error is not None:
+                    msg = f"{msg} ({last_error})"
+                emit({"type": "error", "message": msg})
+                return
+
+            emit({"type": "phase", "label": "Finalizing sources"})
+            sources = [
+                {
+                    "text": c["text"][:600],
+                    "metadata": c["metadata"],
+                    "score": round(c["score"], 3),
+                }
+                for c in chunks
+            ]
+            emit({"type": "sources", "sources": sources})
+            emit({"type": "done"})
+        finally:
+            event_queue.put(None)
+
+    async def generate():
+        event_queue: queue.Queue[dict | None] = queue.Queue()
+        threading.Thread(target=run_pipeline, args=(event_queue,), daemon=True).start()
+        while True:
+            event = await asyncio.to_thread(event_queue.get)
+            if event is None:
+                break
+            yield format_sse_event(event)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
