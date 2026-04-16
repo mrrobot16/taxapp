@@ -139,12 +139,16 @@ const AssistantBubble = memo(function AssistantBubble({
   sources,
   showSources,
   isStreaming,
+  phaseLabel,
 }: {
   content: string;
   sources?: Source[];
   showSources: boolean;
   isStreaming: boolean;
+  phaseLabel?: string;
 }) {
+  const showPhaseStatus = isStreaming && Boolean(phaseLabel);
+
   const rendered = useMemo(
     () => (
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
@@ -166,16 +170,28 @@ const AssistantBubble = memo(function AssistantBubble({
 
       <div className="flex-1 min-w-0">
         <div>
+          {showPhaseStatus && (
+            <div className={`py-1 max-w-xs ${content ? "mb-2" : ""}`}>
+              <div className="flex items-center gap-2.5 text-xs">
+                <span className="h-4 w-4 rounded-full border-2 border-rh-lime border-t-transparent animate-spin" />
+                <span className="text-rh-warm-white">{phaseLabel}</span>
+              </div>
+            </div>
+          )}
+
           {content ? (
             <div className="prose-chat text-sm text-rh-warm-white leading-relaxed">
               {rendered}
             </div>
           ) : (
-            isStreaming && (
-              <div className="flex gap-1 items-center py-1">
-                <span className="h-2 w-2 rounded-full bg-rh-cool-gray animate-bounce [animation-delay:-0.3s]" />
-                <span className="h-2 w-2 rounded-full bg-rh-cool-gray animate-bounce [animation-delay:-0.15s]" />
-                <span className="h-2 w-2 rounded-full bg-rh-cool-gray animate-bounce" />
+            isStreaming && !showPhaseStatus && (
+              <div className="py-1 max-w-xs">
+                <div className="flex items-center gap-2.5 text-xs">
+                  <span className="h-4 w-4 rounded-full border-2 border-rh-lime border-t-transparent animate-spin" />
+                  <span className="text-rh-warm-white">
+                    Connecting to assistant
+                  </span>
+                </div>
               </div>
             )
           )}
@@ -231,6 +247,7 @@ export default function MessageList({
             sources={msg.sources}
             showSources={showSources}
             isStreaming={isLoading && i === lastAssistantIndex}
+            phaseLabel={msg.phaseLabel}
           />
         )
       )}

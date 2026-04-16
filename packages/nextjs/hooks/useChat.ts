@@ -20,6 +20,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   sources?: Source[];
+  phaseLabel?: string;
 }
 
 export interface Conversation {
@@ -105,7 +106,12 @@ export function useChat({ topK }: UseChatOptions): UseChatReturn {
       setMessages((prev) => [...prev, userMsg]);
 
       const assistantId = uid();
-      const assistantMsg: Message = { id: assistantId, role: "assistant", content: "" };
+      const assistantMsg: Message = {
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        phaseLabel: "Connecting to assistant",
+      };
       setMessages((prev) => [...prev, assistantMsg]);
 
       setIsLoading(true);
@@ -148,35 +154,54 @@ export function useChat({ topK }: UseChatOptions): UseChatReturn {
             const jsonStr = trimmed.slice(5).trim();
             if (!jsonStr) continue;
 
-            let event: { type: string; content?: string; sources?: Source[]; message?: string };
+            let event: {
+              type: string;
+              content?: string;
+              sources?: Source[];
+              message?: string;
+              label?: string;
+            };
             try {
               event = JSON.parse(jsonStr);
             } catch {
               continue;
             }
 
-            if (event.type === "text" && event.content) {
-              fullAnswer += event.content;
+            if (event.type === "phase" && event.label) {
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: fullAnswer } : m
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        phaseLabel: event.label,
+                      }
+                    : m
                 )
               );
+            } else if (event.type === "text" && event.content) {
+              fullAnswer += event.content;
             } else if (event.type === "sources" && event.sources) {
               sources = event.sources;
+            } else if (event.type === "done") {
+              continue;
             } else if (event.type === "error" && event.message) {
               throw new Error(event.message);
             }
           }
         }
 
-        if (sources.length > 0) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId ? { ...m, sources } : m
-            )
-          );
-        }
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  content: fullAnswer,
+                  sources: sources.length > 0 ? sources : undefined,
+                  phaseLabel: undefined,
+                }
+              : m
+          )
+        );
 
         historyRef.current.push(
           { role: "user", content: text },
@@ -200,7 +225,7 @@ export function useChat({ topK }: UseChatOptions): UseChatReturn {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? { ...m, content: "Sorry, an error occurred. Please try again." }
+              ? { ...m, content: "Sorry, an error occurred. Please try again.", phaseLabel: undefined }
               : m
           )
         );
